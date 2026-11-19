@@ -127,6 +127,10 @@ header.top { position: relative; z-index: 2; display: flex; align-items: center;
 .altar-today .k { font-size: .64rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ochre); }
 .altar-today .v { font-family: var(--serif); font-size: .98rem; line-height: 1.2; }
 .altar-aff { margin: 0; font-family: var(--serif); font-style: italic; font-size: 1.15rem; line-height: 1.3; text-wrap: balance; }
+.daily-card { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; padding: 10px 12px; border-radius: 14px; background: rgba(74,0,116,.35); border: 1px solid rgba(177,49,250,.35); }
+.daily-card img { width: 52px; height: auto; border-radius: 4px; flex: 0 0 auto; box-shadow: 0 0 10px rgba(177,49,250,.5); }
+.daily-card h4 { margin: 2px 0 0; font-family: var(--serif); font-weight: 400; font-size: 1.1rem; color: #fff; }
+.daily-card p { margin: 2px 0 0; font-size: .88rem; color: #c7a8ec; }
 .altar-rune { display: flex; align-items: center; gap: 12px; }
 .altar-rune .stone { width: 54px; height: 64px; font-size: 1.8rem; flex: 0 0 auto; }
 .altar-rune h4 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 1.15rem; }
@@ -281,8 +285,8 @@ header.top { position: relative; z-index: 2; display: flex; align-items: center;
 .moon-card h3 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 1.3rem; }
 .moon-card p { margin: 2px 0 0; font-size: .86rem; color: var(--vellum-dim); }
 .moon-card .num { font-variant-numeric: tabular-nums; color: var(--vellum); }
-.tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 16px 0 12px; padding: 4px; border-radius: 12px; background: rgba(0,0,0,.25); }
-.tab { padding: 8px 2px; border-radius: 9px; font-size: .84rem; color: var(--vellum-dim); }
+.tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 16px 0 12px; padding: 4px; border-radius: 12px; background: rgba(0,0,0,.25); }
+.tab { padding: 8px 2px; border-radius: 9px; font-size: .8rem; color: var(--vellum-dim); }
 .tab[aria-selected="true"] { background: var(--dusk); color: var(--candle); box-shadow: 0 0 0 1px var(--line); }
 .stage { min-height: 300px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .btn { padding: 10px 20px; border-radius: 999px; background: var(--candle); color: var(--ink); font-weight: 700; letter-spacing: .03em; transition: transform .15s; }
@@ -293,6 +297,26 @@ header.top { position: relative; z-index: 2; display: flex; align-items: center;
 .reading h4 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 1.3rem; }
 .reading p { margin: 4px 0 0; color: var(--vellum-dim); font-size: .92rem; }
 
+/* Spreads library (Divination) */
+.spread-list { display: grid; gap: 8px; }
+.spread-item { display: flex; align-items: center; gap: 12px; text-align: left; padding: 8px 10px; border-radius: 12px; background: rgba(74,0,116,.35); border: 1px solid rgba(177,49,250,.35); color: #fff; }
+.spread-item img, .spread-ph { width: 54px; height: 54px; border-radius: 8px; object-fit: cover; flex: 0 0 auto; }
+.spread-ph { display: grid; place-items: center; font-family: var(--serif); font-size: 1.4rem; color: #FF1CC0; background: rgba(13,0,24,.6); }
+.spread-item b { display: block; font-weight: 500; }
+.spread-item small { color: #c7a8ec; }
+.spread-form .label { display: block; }
+.spread-form .label input, .spread-form .label textarea { margin-top: 6px; text-transform: none; letter-spacing: 0; font-size: 1rem; }
+.spread-pic { display: block; width: 100%; max-height: 340px; object-fit: contain; border-radius: 12px; margin: 6px 0 10px; background: rgba(13,0,24,.5); }
+.spread-title { margin: 0 0 6px; text-align: center; font-family: var(--serif); font-weight: 400; font-size: 1.35rem; color: #fff; }
+.spread-pos { margin: 6px 0 12px 1.2em; padding: 0; color: #e9d6ff; }
+.spread-row { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 8px 0; border-bottom: 1px solid rgba(177,49,250,.25); color: #e9d6ff; }
+.spread-row select { width: 100%; font: inherit; color: var(--vellum); background: rgba(13,0,24,.6); border: 1px solid rgba(177,49,250,.5); border-radius: 10px; padding: 9px 10px; }
+.spread-rev { display: flex; align-items: center; gap: 6px; font-size: .9rem; color: #c7a8ec; }
+.spread-rev input { width: auto; }
+.spread-manual .btns { margin-top: 12px; }
+.spread-cards { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 14px; }
+.spread-card { width: 92px; text-align: center; }
+.spread-card .pos { font-size: .72rem; line-height: 1.25; margin-top: 4px; }
 .cards3 { display: flex; gap: 10px; justify-content: center; perspective: 900px; }
 .tcard { width: 92px; height: 150px; position: relative; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.3,1.2,.4,1); }
 .tcard.flipped { transform: rotateY(180deg); }
@@ -472,6 +496,25 @@ header.top { position: relative; z-index: 2; display: flex; align-items: center;
 .scene .candle { position: absolute; width: 16%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; mix-blend-mode: screen;
   background: radial-gradient(closest-side, rgba(255,214,150,.7), rgba(255,150,80,.25) 40%, transparent 75%); animation: candle 2.4s ease-in-out infinite; }
 @keyframes candle { 0%,100% { opacity: .7; scale: 1; } 23% { opacity: 1; scale: 1.08; } 41% { opacity: .65; scale: .96; } 63% { opacity: .95; scale: 1.05; } 82% { opacity: .78; } }
+#r-altar .scene .candle { animation-duration: 1.5s; }
+/* Altar candle flames: a teardrop on each wick that sways and flickers. */
+.scene .flame { position: absolute; width: 1.7%; aspect-ratio: 1 / 2.6; translate: -50% -100%; transform-origin: 50% 100%; border-radius: 50% 50% 45% 45% / 62% 62% 38% 38%; mix-blend-mode: screen;
+  background: radial-gradient(ellipse 50% 60% at 50% 72%, #fffbe8 0%, #ffe39a 35%, #ffa040 65%, rgba(255,110,30,0) 100%);
+  filter: blur(.4px) drop-shadow(0 0 4px rgba(255,170,80,.9)); animation: flameSway 1.9s ease-in-out infinite, flameFlick .55s ease-in-out infinite alternate; }
+/* Cauldron: a warm glow in the pot, bubbles rising and popping, and steam. */
+.scene .brew-glow { position: absolute; width: 16%; height: 4%; translate: -50% -50%; border-radius: 50%; mix-blend-mode: screen;
+  background: radial-gradient(closest-side, rgba(255,170,70,.75), rgba(255,110,40,.25) 55%, transparent); animation: candle 2.8s ease-in-out infinite; }
+.scene .bubbles { position: absolute; width: 0; height: 0; }
+.scene .bubbles i { position: absolute; bottom: 0; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; opacity: 0;
+  background: radial-gradient(circle at 35% 35%, rgba(255,240,200,.95), rgba(255,160,70,.55) 55%, rgba(255,120,40,.1)); box-shadow: 0 0 6px rgba(255,170,80,.8);
+  animation: bubble 2.2s ease-in infinite; }
+.scene .bubbles i:nth-child(1) { left: -22px; animation-delay: 0s; }
+.scene .bubbles i:nth-child(2) { left: -8px; animation-delay: .7s; width: 5px; height: 5px; }
+.scene .bubbles i:nth-child(3) { left: 6px; animation-delay: 1.3s; }
+.scene .bubbles i:nth-child(4) { left: 18px; animation-delay: .35s; width: 5px; height: 5px; }
+.scene .bubbles i:nth-child(5) { left: -14px; animation-delay: 1.75s; width: 9px; height: 9px; }
+.scene .bubbles i:nth-child(6) { left: 12px; animation-delay: 1.05s; width: 6px; height: 6px; }
+@keyframes bubble { 0% { opacity: 0; transform: translateY(4px) scale(.4); } 15% { opacity: 1; } 70% { opacity: 1; transform: translateY(-14px) scale(1); } 85% { opacity: .9; transform: translateY(-17px) scale(1.5); } 100% { opacity: 0; transform: translateY(-18px) scale(1.9); } }
 #r-divination .stage { padding: 14px 10px; border-radius: 18px; background: rgba(13,0,24,.62); border: 1px solid rgba(177,49,250,.3); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 #r-divination .moon-card, #r-divination .tabs { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 #r-divination .label { text-shadow: 0 1px 6px #000; }
@@ -563,6 +606,11 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
         <div class="glow" style="top:97%;width:90%;height:22%"></div>
         <span class="candle" style="left:7.98%;top:69.9%;width:10%"></span>
         <span class="candle" style="left:13.1%;top:71.8%;width:10%;animation-delay:-1.1s"></span>
+        <span class="flame" style="left:8.0%;top:70.7%"></span>
+        <span class="flame" style="left:13.1%;top:73.0%;animation-delay:-.45s,-.8s"></span>
+        <span class="brew-glow" style="left:74.7%;top:75.8%"></span>
+        <span class="bubbles" style="left:74.7%;top:75.9%"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="steam" style="left:74.7%;top:75.2%"><span></span><span></span><span></span></span>
         <span class="othala-glow" id="othalaGlow"></span>
         <canvas id="seasonFx"></canvas>
       </div>
@@ -682,6 +730,7 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
         <button class="tab" role="tab" data-tab="runes" aria-selected="false">Runes</button>
         <button class="tab" role="tab" data-tab="scry" aria-selected="false">Scrying</button>
         <button class="tab" role="tab" data-tab="board" aria-selected="false">Spirit Board</button>
+        <button class="tab" role="tab" data-tab="spreads" aria-selected="false">Spreads</button>
       </div>
       <div class="stage" id="stage"></div>
       <div class="label"><span>Readings journal</span></div>
@@ -727,6 +776,109 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
   <div class="scrim" id="scrim"></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Note"><div class="grab"></div><div id="sheetBody"></div></div>
 </div>
+
+<script>
+// ---------- Sync (Supabase) ----------
+// Keeps every "hearthbook." note the same on the phone app and the website. Each key is one row in your
+// own private table; the newest change wins. Works offline: changes wait and go up next time there's a
+// connection. Runs before the rest of the page so every save is noticed.
+(() => {
+  const URL_ = "https://xhxcktmoujnrskagvwwl.supabase.co";
+  const ANON = "sb_publishable_SA9qXsNEGx-Z7jFbJnXd7g__aS8vz0d";
+  const TABLE = "hearthbook_data";
+  const SKEY = "hbsync.session", MKEY = "hbsync.meta", PKEY = "hbsync.pulled";
+  const LOCAL_ONLY = new Set(["hearthbook.lastBackup"]);
+  const ls = window.localStorage, rawSet = Storage.prototype.setItem, rawRemove = Storage.prototype.removeItem;
+  const synced = k => typeof k === "string" && k.startsWith("hearthbook.") && !LOCAL_ONLY.has(k);
+  const read = (k, d) => { try { return JSON.parse(ls.getItem(k)) ?? d; } catch (e) { return d; } };
+  const write = (k, v) => rawSet.call(ls, k, JSON.stringify(v));
+  let meta = read(MKEY, {});            // key -> { t: last change time (ms), dirty: not yet uploaded }
+  let applying = false, timer = 0, busy = false, status = "", listeners = [];
+  const setStatus = s => { status = s; listeners.forEach(f => f()); };
+
+  // Notice every save and delete the page makes.
+  function mark(k) { if (applying || !synced(k)) return; meta[k] = { t: Date.now(), dirty: true }; write(MKEY, meta); schedule(); }
+  Storage.prototype.setItem = function (k, v) { rawSet.call(this, k, v); if (this === ls) mark(String(k)); };
+  Storage.prototype.removeItem = function (k) { rawRemove.call(this, k); if (this === ls) mark(String(k)); };
+
+  const session = () => read(SKEY, null);
+  async function auth(path, body) {
+    const r = await fetch(`${URL_}/auth/v1/${path}`, { method: "POST", headers: { apikey: ANON, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.msg || j.error_description || j.message || "Couldn't sign in");
+    return j;
+  }
+  function keep(j) { write(SKEY, { access: j.access_token, refresh: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000 - 60000, email: j.user?.email }); }
+  async function token() {
+    const s = session(); if (!s) return null;
+    if (Date.now() < s.exp) return s.access;
+    try { const j = await auth("token?grant_type=refresh_token", { refresh_token: s.refresh }); keep(j); return j.access_token; }
+    catch (e) { return null; }
+  }
+  async function api(method, query, body) {
+    const t = await token(); if (!t) throw new Error("signed out");
+    const r = await fetch(`${URL_}/rest/v1/${TABLE}${query}`, { method, headers: { apikey: ANON, Authorization: `Bearer ${t}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }, body: body && JSON.stringify(body) });
+    if (!r.ok) throw new Error(`Sync error ${r.status}`);
+    return method === "GET" ? r.json() : null;
+  }
+
+  async function sync() {
+    if (busy || !session() || !navigator.onLine) return;
+    busy = true; setStatus("Syncing…");
+    try {
+      // 1. Bring down anything changed elsewhere since last time.
+      const since = read(PKEY, 0);
+      const rows = await api("GET", `?select=key,value,updated_at&updated_at=gt.${encodeURIComponent(new Date(Math.max(0, since - 120000)).toISOString())}&order=updated_at.asc`);
+      let changed = false, newest = since;
+      applying = true;
+      for (const row of rows) {
+        const t = Date.parse(row.updated_at); newest = Math.max(newest, t);
+        const mine = meta[row.key];
+        if (mine && mine.dirty && mine.t > t) continue;          // this device's change is newer
+        if (row.value === null) { if (ls.getItem(row.key) !== null) { rawRemove.call(ls, row.key); changed = true; } }
+        else if (ls.getItem(row.key) !== row.value) { rawSet.call(ls, row.key, row.value); changed = true; }
+        meta[row.key] = { t, dirty: false };
+      }
+      applying = false;
+      // 2. Send up this device's changes (a deleted note goes up as empty, so other devices delete it too).
+      const up = Object.entries(meta).filter(([, m]) => m.dirty).map(([key, m]) => ({ key, value: ls.getItem(key), updated_at: new Date(m.t).toISOString() }));
+      if (up.length) {
+        await api("POST", "?on_conflict=user_id,key", up);
+        up.forEach(({ key }) => meta[key].dirty = false);
+      }
+      write(MKEY, meta); write(PKEY, newest);
+      write("hbsync.last", Date.now());
+      setStatus("");
+      if (changed) location.reload();                            // show what came from your other device
+    } catch (e) {
+      applying = false;
+      setStatus(e.message === "signed out" ? "Signed out. Sign in again to keep syncing." : "Couldn't sync just now. It will try again.");
+    } finally { busy = false; }
+  }
+  function schedule() { clearTimeout(timer); timer = setTimeout(sync, 2500); }
+
+  // First sign-in on a device: everything already here counts as a change, so nothing is lost.
+  function markAll() { Object.keys(ls).filter(synced).forEach(k => { if (!meta[k]) meta[k] = { t: 1, dirty: true }; }); write(MKEY, meta); }
+
+  async function signIn(email, password, create) {
+    const j = create ? await auth("signup", { email, password }) : await auth("token?grant_type=password", { email, password });
+    if (!j.access_token) return "Check your email and tap the link to confirm, then sign in here.";
+    keep(j); write(PKEY, 0); markAll(); await sync(); return "";
+  }
+  function signOut() { rawRemove.call(ls, SKEY); setStatus(""); }
+
+  addEventListener("online", schedule);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") sync(); });
+  addEventListener("load", () => setTimeout(sync, 800));
+  setInterval(() => document.visibilityState === "visible" && sync(), 60000);
+
+  window.HBSync = {
+    get email() { return session()?.email || null; }, get status() { return status; },
+    get last() { return read("hbsync.last", 0); },
+    onChange(f) { listeners = [f]; }, sync, signIn, signOut,
+  };
+})();
+</script>
 
 <script>
 (() => {
@@ -1077,6 +1229,16 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
   const MAJOR = [["The Fool","✦","New beginnings, a leap of faith","Hesitation, recklessness"],["The Magician","∞","Skill, will, making it happen","Scattered energy, trickery"],["The High Priestess","☽","Intuition, hidden knowledge","Ignoring your inner voice"],["The Empress","♀","Abundance, nurture, creativity","Neglect, creative block"],["The Emperor","♂","Structure, authority, stability","Rigidity, control"],["The Hierophant","⚷","Tradition, teaching, ritual","Breaking convention"],["The Lovers","♡","Union, choices, alignment","Imbalance, misalignment"],["The Chariot","⛭","Willpower, momentum, victory","Lack of direction"],["Strength","∞","Courage, gentle power","Self-doubt"],["The Hermit","✧","Solitude, inner guidance","Isolation, withdrawal"],["Wheel of Fortune","☸","Cycles, luck, turning points","Resistance to change"],["Justice","⚖","Truth, fairness, cause and effect","Unfairness, avoidance"],["The Hanged Man","⟁","Pause, surrender, new view","Stalling, indecision"],["Death","☠","Endings, transformation","Clinging to the old"],["Temperance","⚱","Balance, patience, blending","Excess, impatience"],["The Devil","⛧","Attachment, temptation","Release, breaking free"],["The Tower","⚡","Sudden change, revelation","Avoiding the inevitable"],["The Star","★","Hope, renewal, healing","Discouragement"],["The Moon","☾","Dreams, illusion, the unknown","Clarity returning"],["The Sun","☀","Joy, success, vitality","Temporary clouds"],["Judgement","♫","Awakening, a calling","Self-judgment"],["The World","◯","Completion, wholeness","Loose ends"]];
   const ROMAN = ["0","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI"];
   const RUNES = [["ᚠ","Fehu","Wealth, energy, earned reward"],["ᚢ","Uruz","Strength, health, raw power"],["ᚦ","Thurisaz","Protection, a gateway, caution"],["ᚨ","Ansuz","Messages, wisdom, communication"],["ᚱ","Raidho","Journey, rhythm, the right path"],["ᚲ","Kenaz","Insight, creativity, a torch in the dark"],["ᚷ","Gebo","Gifts, partnership, exchange"],["ᚹ","Wunjo","Joy, harmony, belonging"],["ᚺ","Hagalaz","Disruption that clears the way"],["ᚾ","Nauthiz","Need, patience, constraint"],["ᛁ","Isa","Stillness, a pause, waiting"],["ᛃ","Jera","Harvest, cycles, reward for effort"],["ᛇ","Eihwaz","Endurance, the axis between worlds"],["ᛈ","Perthro","Mystery, fate, what is hidden"],["ᛉ","Algiz","Protection, sanctuary, guardians"],["ᛊ","Sowilo","Success, the sun, wholeness"],["ᛏ","Tiwaz","Courage, honor, victory"],["ᛒ","Berkano","Birth, growth, new beginnings"],["ᛖ","Ehwaz","Movement, trust, partnership"],["ᛗ","Mannaz","The self, community, humanity"],["ᛚ","Laguz","Flow, intuition, water"],["ᛜ","Ingwaz","Gestation, inner growth"],["ᛞ","Dagaz","Breakthrough, dawn, awakening"],["ᛟ","Othala","Home, heritage, inheritance"]];
+  // Today's rune and card come from the date alone, so Hearthbook and the phone widgets always agree.
+  // The Hearthbook Widgets app (Daily.kt) uses exactly the same hash.
+  function dayHash(d, salt) {
+    let h = (d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()) ^ salt;
+    h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+    h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+    return (h ^ (h >>> 16)) >>> 0;
+  }
+  const dailyRune = (d = new Date()) => dayHash(d, 0x52554E45) % 24;
+  const dailyCard = (d = new Date()) => ({ i: dayHash(d, 0x43415244) % 78, rev: dayHash(d, 0x52455653) % 10 < 3 });
   const VISIONS = ["a door left open", "a bird turning north", "roots beneath stone", "a key in still water", "two candles, one taller", "a path through tall grass", "a spiral of light", "an open hand", "a ring of seven stars"];
   const pickN = (arr, n) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); };
   let lastReading = null, scryRAF = 0;
@@ -1095,8 +1257,124 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
   const DECK = MAJOR.map((c, i) => ({ n: c[0], up: c[2], rv: c[3], img: `tarot/${MAJ_FILES[i]}.jpg` }))
     .concat(...SUITS.map(([suit, f, ranks]) => ranks.map(([r, up, rv], k) => ({ n: `${r} of ${suit}`, up, rv, img: `tarot/${f}${String(k + 1).padStart(2, "0")}.jpg` }))));
   const tabs = {
+    // Spreads: your own library. Save a picture of a spread (from Pinterest or anywhere), or build one by
+    // naming its positions, then pull for it digitally or type in the cards you pulled with your own deck.
+    // Each spread is its own "hearthbook.spread.<id>" note, so it syncs like everything else.
+    spreads() {
+      const SP = "hearthbook.spread.";
+      const all = () => Object.keys(localStorage).filter(k => k.startsWith(SP))
+        .map(k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } })
+        .filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+      const put = s => { try { localStorage.setItem(SP + s.id, JSON.stringify(s)); return true; } catch (e) { return false; } };
+      const posList = s => s.positions.length ? s.positions : ["Card"];
+      const cardOpts = sel => DECK.map((c, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${esc(c.n)}</option>`).join("");
+
+      // Pictures are shrunk on this device (longest side 900 px) so they're quick to sync and don't fill storage.
+      const shrink = file => new Promise((ok, bad) => {
+        const img = new Image(), url = URL.createObjectURL(file);
+        img.onload = () => {
+          const k = Math.min(1, 900 / Math.max(img.width, img.height)), cv = document.createElement("canvas");
+          cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+          cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url);
+          ok(cv.toDataURL("image/jpeg", 0.75));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); bad(); };
+        img.src = url;
+      });
+
+      function list() {
+        const ss = all();
+        stage.innerHTML = `<p class="intro" style="margin:0 0 12px;text-align:center">Your spreads. Save a picture of one you like, or build your own, then pull for it.</p>
+          <div class="spread-list">${ss.map(s => `<button class="spread-item" data-id="${esc(s.id)}">${s.img ? `<img src="${s.img}" alt="">` : `<span class="spread-ph">${posList(s).length}</span>`}<span><b>${esc(s.name)}</b><small>${posList(s).length} card${posList(s).length > 1 ? "s" : ""}</small></span></button>`).join("")
+            || `<p class="hint" style="margin:0 0 6px">No spreads yet.</p>`}</div>
+          <div class="btns" style="margin-top:12px"><button class="btn" id="spNew">Add a spread</button></div>`;
+        stage.querySelectorAll(".spread-item").forEach(b => b.onclick = () => open(all().find(s => s.id === b.dataset.id)));
+        $("spNew").onclick = () => edit(null);
+      }
+
+      function edit(s) {
+        const cur = s ? { ...s } : { id: "sp" + Date.now(), name: "", positions: [], img: null, note: "", d: Date.now() };
+        stage.innerHTML = `<div class="spread-form">
+            <label class="label" style="margin-top:0">Name<input id="spName" value="${esc(cur.name)}" placeholder="e.g. New moon intentions"></label>
+            <div class="label">Picture (optional)</div>
+            <div id="spPic">${cur.img ? `<img class="spread-pic" src="${cur.img}" alt="">` : ""}</div>
+            <div class="btns" style="justify-content:flex-start"><label class="btn ghost" style="cursor:pointer">${cur.img ? "Change picture" : "Add a picture"}<input type="file" id="spFile" accept="image/*" hidden></label>${cur.img ? `<button class="btn ghost" id="spNoPic">Remove picture</button>` : ""}</div>
+            <label class="label">Positions, one per line, in pull order<textarea id="spPos" rows="6" placeholder="1. Where I am now&#10;2. What I need to release&#10;3. What to welcome">${esc(cur.positions.join("\n"))}</textarea></label>
+            <label class="label">Notes (optional)<textarea id="spNote" rows="3" placeholder="Where it's from, how to lay it out…">${esc(cur.note)}</textarea></label>
+            <p class="hint" id="spMsg"></p>
+            <div class="btns"><button class="btn" id="spSave">Save spread</button><button class="btn ghost" id="spCancel">Cancel</button>${s ? `<button class="btn ghost" id="spDel">Delete</button>` : ""}</div>
+          </div>`;
+        $("spFile").onchange = async e => {
+          const f = e.target.files[0]; if (!f) return;
+          try { cur.img = await shrink(f); $("spPic").innerHTML = `<img class="spread-pic" src="${cur.img}" alt="">`; }
+          catch (err) { $("spMsg").textContent = "That picture couldn't be opened."; }
+        };
+        $("spNoPic") && ($("spNoPic").onclick = () => { cur.img = null; $("spPic").innerHTML = ""; });
+        $("spCancel").onclick = () => s ? open(s) : list();
+        $("spDel") && ($("spDel").onclick = () => {
+          if (!$("spDel").dataset.sure) { $("spDel").dataset.sure = 1; $("spDel").textContent = "Tap again to delete"; return; }
+          localStorage.removeItem(SP + cur.id); list();
+        });
+        $("spSave").onclick = () => {
+          cur.name = $("spName").value.trim();
+          cur.positions = $("spPos").value.split("\n").map(l => l.replace(/^\s*\d+[.)]\s*/, "").trim()).filter(Boolean);
+          cur.note = $("spNote").value.trim();
+          if (!cur.name) { $("spMsg").textContent = "Give the spread a name."; return; }
+          if (!cur.positions.length && !cur.img) { $("spMsg").textContent = "Add at least one position, or a picture."; return; }
+          if (!put(cur)) { $("spMsg").textContent = "Your phone's storage for Hearthbook is full. Try a smaller picture, or remove one from another spread."; return; }
+          open(cur);
+        };
+      }
+
+      function open(s) {
+        const ps = posList(s);
+        stage.innerHTML = `<div class="spread-open">
+            <h3 class="spread-title">${esc(s.name)}</h3>
+            ${s.img ? `<img class="spread-pic" src="${s.img}" alt="Picture of the ${esc(s.name)} spread">` : ""}
+            ${s.note ? `<p class="hint" style="text-align:left">${esc(s.note)}</p>` : ""}
+            <ol class="spread-pos">${ps.map(p => `<li>${esc(p)}</li>`).join("")}</ol>
+            <div class="btns"><button class="btn" id="spDraw">Draw for me</button><button class="btn ghost" id="spManual">Enter my own pull</button></div>
+            <div id="spOut"></div>
+            <div class="btns" style="margin-top:14px"><button class="btn ghost" id="spBack">All spreads</button><button class="btn ghost" id="spEdit">Edit</button></div>
+          </div>`;
+        $("spBack").onclick = list; $("spEdit").onclick = () => edit(s);
+        $("spDraw").onclick = () => show(s, pickN(DECK, ps.length).map(c => ({ i: DECK.indexOf(c), rev: Math.random() < .3 })));
+        $("spManual").onclick = () => manual(s);
+      }
+
+      function manual(s) {
+        const ps = posList(s);
+        $("spOut").innerHTML = `<div class="spread-manual">${ps.map((p, k) => `<div class="spread-row"><span>${esc(p)}</span>
+            <select data-k="${k}" aria-label="Card for ${esc(p)}"><option value="">Choose a card…</option>${cardOpts(-1)}</select>
+            <label class="spread-rev"><input type="checkbox" data-r="${k}"> Reversed</label></div>`).join("")}
+          <div class="btns"><button class="btn" id="spShow">Show my pull</button></div></div>`;
+        $("spShow").onclick = () => {
+          const picks = ps.map((p, k) => ({ i: +stage.querySelector(`select[data-k="${k}"]`).value, rev: stage.querySelector(`input[data-r="${k}"]`).checked, empty: !stage.querySelector(`select[data-k="${k}"]`).value }));
+          if (picks.some(x => x.empty)) { $("spShow").textContent = "Choose a card for each position"; return; }
+          show(s, picks);
+        };
+      }
+
+      function show(s, picks) {
+        const ps = posList(s);
+        $("spOut").innerHTML = `<div class="spread-cards">${picks.map((x, k) => { const c = DECK[x.i]; return `<div class="spread-card"><button class="tcard flipped${x.rev ? " rev" : ""}" data-card="${x.i}" data-rev="${x.rev ? 1 : 0}" aria-label="${esc(c.n)}"><div class="face back"></div><div class="face front"><img src="${c.img}" alt=""></div></button><div class="pos">${esc(ps[k])}</div></div>`; }).join("")}</div>
+          <div class="reading" style="margin:10px auto 0">${picks.map((x, k) => { const c = DECK[x.i]; return `<p><b>${esc(ps[k])}:</b> ${esc(c.n)}${x.rev ? " (reversed)" : ""}. ${esc(x.rev ? c.rv : c.up)}.</p>`; }).join("")}</div>
+          <label class="label">Your notes<textarea id="spRNote" rows="3" placeholder="What stood out?"></textarea></label>
+          <div class="btns"><button class="btn" id="saveR">Save reading</button></div>`;
+        const lines = picks.map((x, k) => `${ps[k]}: ${DECK[x.i].n}${x.rev ? " (reversed)" : ""}. ${x.rev ? DECK[x.i].rv : DECK[x.i].up}.`);
+        $("saveR").onclick = () => {
+          const extra = $("spRNote").value.trim();
+          lastReading = { g: "Tarot", t: `${s.name}, ${today()}`, b: lines.join("\n") + (extra ? `\n\nNotes: ${extra}` : "") + `\nMoon: ${pname}` };
+          saveReading();
+        };
+        $("spOut").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      list();
+    },
     tarot() {
-      stage.innerHTML = `<div class="cards3" id="cards"></div><div class="reading" id="tread"><p>Three cards: past, present, future. Think of your question, then draw.</p></div><div class="btns"><button class="btn" id="draw">Draw three cards</button><button class="btn ghost" id="saveR" hidden>Save reading</button></div>`;
+      const dc = dailyCard(), dcard = DECK[dc.i];
+      stage.innerHTML = `<div class="daily-card"><img src="${dcard.img}" alt=""${dc.rev ? ' style="transform:rotate(180deg)"' : ""}><div><p class="label" style="margin:0">Card of the day</p><h4>${esc(dcard.n)}${dc.rev ? " (reversed)" : ""}</h4><p>${esc(dc.rev ? dcard.rv : dcard.up)}</p></div></div><div class="cards3" id="cards"></div><div class="reading" id="tread"><p>Three cards: past, present, future. Think of your question, then draw.</p></div><div class="btns"><button class="btn" id="draw">Draw three cards</button><button class="btn ghost" id="saveR" hidden>Save reading</button></div>`;
       const posn = ["Past", "Present", "Future"];
       const back = () => posn.map(p => `<div><div class="tcard"><div class="face back"></div><div class="face front"></div></div><div class="pos">${p}</div></div>`).join("");
       $("cards").innerHTML = back();
@@ -1417,13 +1695,13 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
     let st = {}; try { st = JSON.parse(localStorage.getItem(KEY_A) || "{}") || {}; } catch (e) {}
     function show(animate) {
       const box = $("altarRune");
-      if (st.date === today && RUNES[st.rune]) {
-        const r = RUNES[st.rune];
+      if (st.date === today) {
+        const r = RUNES[dailyRune()];
         box.innerHTML = `<div class="stone"${animate ? "" : ' style="animation:none"'}>${r[0]}</div><div><h4>Today's rune: ${r[1]}</h4><p>${r[2]}</p></div>`;
       } else {
         box.innerHTML = `<button class="btn" id="pullRune">Pull today's rune</button><p style="margin:0;font-size:.88rem;color:#e2c9a6">One rune to guide your day.</p>`;
         $("pullRune").onclick = () => {
-          st = { date: today, rune: Math.floor(Math.random() * RUNES.length) };
+          st = { date: today, rune: dailyRune() };
           try { localStorage.setItem(KEY_A, JSON.stringify(st)); } catch (e) {}
           const g = $("othalaGlow"); g.classList.remove("lit"); void g.offsetWidth; g.classList.add("lit");
           show(true);
@@ -1562,6 +1840,9 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
     const fmt = t => t ? new Date(+t).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "never";
     function backup() {
       const data = { app: "Hearthbook", version: 1, saved: new Date().toISOString(), data: Object.fromEntries(keys().filter(k => k !== "hearthbook.lastBackup").map(k => [k, localStorage.getItem(k)])) };
+      const name = `hearthbook-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      // In the Android app, the app saves the file with Android's own save screen.
+      if (window.HearthbookAndroid) { HearthbookAndroid.saveFile(name, JSON.stringify(data, null, 1)); try { localStorage.setItem("hearthbook.lastBackup", Date.now()); } catch (e) {} $("bkLast") && ($("bkLast").textContent = fmt(Date.now())); return; }
       const blob = new Blob([JSON.stringify(data, null, 1)], { type: "application/json" });
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `hearthbook-backup-${new Date().toISOString().slice(0, 10)}.json`;
       document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
@@ -1582,7 +1863,7 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
     $("menuBtn").addEventListener("click", () => {
       let last = null; try { last = localStorage.getItem("hearthbook.lastBackup"); } catch (e) {}
       openSheet(`<h2>Backup</h2>
-        <p class="muted">Your notes live only on this device. Download a backup now and then, and keep it somewhere safe like Google Drive.</p>
+        <p class="muted">Download a backup now and then, and keep it somewhere safe like Google Drive.</p>
         <p class="muted">Last backup: <b id="bkLast">${fmt(last)}</b></p>
         <div class="backup-row">
           <button class="btn" id="bkSave">Download backup</button>
@@ -1592,7 +1873,44 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
         <div class="bar"><span></span><div class="btns"><button class="btn ghost" data-close>Close</button></div></div>`);
       $("bkSave").onclick = backup;
       $("bkFile").onchange = e => e.target.files[0] && restore(e.target.files[0]);
+      syncPanel();
     });
+
+    // Sync: sign in once on each device (phone app and PC) with the same email, and notes stay the same everywhere.
+    function syncPanel() {
+      const box = document.createElement("div"); box.id = "syncBox";
+      $("bkMsg").after(box);
+      const ago = t => { if (!t) return "not yet"; const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "just now" : m < 60 ? `${m} min ago` : fmt(t); };
+      function draw(msg = "") {
+        const S = window.HBSync; if (!S) return;
+        box.innerHTML = S.email
+          ? `<h2 style="margin-top:22px">Sync</h2>
+             <p class="muted">Signed in as <b>${esc(S.email)}</b>. Your notes stay the same on every device you sign in on.</p>
+             <p class="muted">Last synced: <b>${S.status || ago(S.last)}</b></p>
+             <div class="backup-row"><button class="btn" id="syNow">Sync now</button><button class="btn ghost" id="syOut">Sign out on this device</button></div>`
+          : `<h2 style="margin-top:22px">Sync</h2>
+             <p class="muted">Sign in to keep your notes the same on your phone and your PC. Use the same email and password on each.</p>
+             <div class="backup-row">
+               <input id="syEmail" type="email" autocomplete="email" placeholder="Email" style="width:100%">
+               <input id="syPass" type="password" autocomplete="current-password" placeholder="Password (8 or more characters)" style="width:100%">
+               <button class="btn" id="syIn">Sign in</button>
+               <button class="btn ghost" id="syNew">First time? Create my account</button>
+             </div>`;
+        if (msg) box.insertAdjacentHTML("beforeend", `<p class="muted">${esc(msg)}</p>`);
+        const go = async create => {
+          const e = $("syEmail").value.trim(), p = $("syPass").value;
+          if (!e || p.length < 8) return draw("Enter your email and a password of 8 or more characters.");
+          box.querySelectorAll("button").forEach(b => b.disabled = true);
+          try { draw(await S.signIn(e, p, create)); } catch (err) { draw(err.message); }
+        };
+        $("syIn") && ($("syIn").onclick = () => go(false));
+        $("syNew") && ($("syNew").onclick = () => go(true));
+        $("syNow") && ($("syNow").onclick = () => S.sync());
+        $("syOut") && ($("syOut").onclick = () => { S.signOut(); draw(); });
+      }
+      window.HBSync?.onChange(() => document.body.contains(box) && draw());
+      draw();
+    }
     // ask the browser to keep this app's storage (helps on Android)
     navigator.storage?.persist?.().catch(() => {});
   })();
@@ -1603,7 +1921,7 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
 </script>
 
 <script>
-if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+if ("serviceWorker" in navigator && !window.HearthbookAndroid) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 </script>
 </body>
 </html>
