@@ -1,0 +1,1609 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#24150D">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-180.png">
+<title>Hearthbook</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&family=Alegreya+Sans:wght@400;500;700&family=Noto+Sans+Runic&family=Noto+Sans+Symbols&display=swap">
+<style>
+/* Layout: one phone-sized app; five full-height rooms on a horizontal scroll-snap track, bottom nav, sliding sheet for notes. Single candlelit night theme by choice. */
+:root {
+  --ink: #15111d;
+  --dusk: #221b2e;
+  --vellum: #efe4cf;
+  --vellum-dim: #b9ad9c;
+  --candle: #e8b660;
+  --sage: #9db69a;
+  --rose: #d39a92;
+  --line: rgba(239, 228, 207, 0.14);
+  --card: rgba(239, 228, 207, 0.06);
+  --display: "IM Fell English SC", "Iowan Old Style", Georgia, serif;
+  --serif: "IM Fell English", "Iowan Old Style", Georgia, serif;
+  --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --rune: "Noto Sans Runic", "Segoe UI Historic", serif;
+  --tint: #2a1c14;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--ink); color: var(--vellum); font-family: var(--body); font-size: 16px; line-height: 1.5; overflow: hidden; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--candle); outline-offset: 2px; }
+
+.app { position: relative; height: 100%; max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; overflow: hidden;
+  background: radial-gradient(120% 70% at 50% 0%, var(--tint), var(--ink) 70%); transition: background-color .3s; }
+@media (min-width: 520px) { .app { border-left: 1px solid var(--line); border-right: 1px solid var(--line); } }
+#stars { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+header.top { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-block: 14px 6px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.room-title { font-family: var(--display); font-size: 1.75rem; letter-spacing: .02em; line-height: 1.1; }
+.room-sub { font-size: .8rem; color: var(--vellum-dim); letter-spacing: .08em; text-transform: uppercase; }
+.top-right { display: flex; align-items: center; gap: 6px; }
+.menu-btn { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); color: var(--vellum-dim); }
+.menu-btn svg { width: 18px; height: 18px; fill: currentColor; }
+.sheet .backup-row { display: grid; gap: 10px; margin-top: 14px; }
+.sheet .backup-row .btn { width: 100%; justify-content: center; }
+.sheet .muted { color: var(--vellum-dim); font-size: .9rem; margin-top: 8px; }
+.moon-chip { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px; border: 1px solid var(--line); border-radius: 999px; font-size: .78rem; color: var(--vellum-dim); white-space: nowrap; }
+.moon-chip canvas { width: 26px; height: 26px; }
+
+.track:focus { outline: none; }
+.track { position: relative; z-index: 1; flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.track::-webkit-scrollbar { display: none; }
+.room { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; overflow-y: auto; overscroll-behavior-y: contain;
+  padding-block: 8px 28px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.room > * { transition: transform .5s cubic-bezier(.2,.8,.2,1), opacity .5s; }
+.room:not(.active) > * { transform: translateY(10px) scale(.985); opacity: .55; }
+.intro { color: var(--vellum-dim); font-size: .95rem; margin: 2px 0 14px; max-width: 34em; }
+.label { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--vellum-dim); margin: 18px 0 8px; display: flex; justify-content: space-between; align-items: center; }
+.add-btn { font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--candle); padding: 6px 2px; }
+
+/* Bookcase */
+.shelf { display: flex; align-items: flex-end; gap: 6px; padding: 14px 10px 0; min-height: 190px; border-bottom: 10px solid #5b3a25; box-shadow: 0 14px 18px -10px rgba(0,0,0,.7); background: linear-gradient(transparent 70%, rgba(0,0,0,.25)); border-radius: 4px 4px 0 0; overflow-x: auto; }
+.book { position: relative; flex: 0 0 auto; width: 46px; border-radius: 3px 3px 1px 1px; padding: 10px 0; display: flex; justify-content: center;
+  box-shadow: inset -6px 0 8px rgba(0,0,0,.35), inset 3px 0 0 rgba(255,255,255,.12); transform-origin: bottom center; transition: transform .35s cubic-bezier(.3,1.4,.5,1); }
+.book:hover, .book:focus-visible { transform: translateY(-10px) rotate(-2deg); }
+.book span { writing-mode: vertical-rl; transform: rotate(180deg); font-family: var(--serif); font-size: .92rem; color: #f7ecd6; text-shadow: 0 1px 1px rgba(0,0,0,.5); white-space: nowrap; }
+.book::before, .book::after { content: ""; position: absolute; left: 6px; right: 6px; height: 2px; background: rgba(240,200,120,.55); }
+.book::before { top: 8px; } .book::after { bottom: 8px; }
+.book .count { position: absolute; top: -9px; right: -6px; transform: none; writing-mode: horizontal-tb; font-family: var(--body); font-size: .68rem; background: var(--candle); color: var(--ink); border-radius: 999px; padding: 0 6px; text-shadow: none; }
+
+.list { display: grid; gap: 8px; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; text-align: left; padding: 12px 14px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); transition: transform .2s, background .2s; }
+.row:hover { background: rgba(239,228,207,.1); transform: translateX(3px); }
+.row b { font-family: var(--serif); font-weight: 400; font-size: 1.08rem; min-width: 0; }
+.row small { grid-column: 1 / -1; color: var(--vellum-dim); font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip { align-self: center; font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; color: var(--sage); white-space: nowrap; }
+
+/* Painted stand-in scenes (Bookcase, Crystal Ball, Astrology) */
+#r-bookcase.room, #r-crystal.room, #r-astrology.room { position: relative; overflow: hidden; padding: 0; }
+.room-scroll { position: absolute; inset: 0; z-index: 1; overflow-y: auto; overscroll-behavior: contain;
+  padding-block: 8px 28px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.paint-scene { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.paint-scene canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.room-scroll .intro, .room-scroll .label, .room-scroll .hint { text-shadow: 0 1px 8px rgba(0,0,0,.9); }
+#r-bookcase .row, #r-crystal .row, #r-astrology .row { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+#r-bookcase .row { background: rgba(43,29,20,.72); }
+#r-bookcase .shelf { background: rgba(20,13,9,.55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); border-radius: 10px 10px 0 0; }
+#r-crystal .row { background: rgba(30,26,26,.62); }
+#r-astrology .row, #r-astrology .sign { -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+#r-astrology .row { background: rgba(11,20,64,.7); }
+#r-astrology .sign { background: rgba(11,20,64,.6); }
+.fog { position: absolute; width: 140%; height: 45%; left: -20%; border-radius: 50%; filter: blur(30px); opacity: .5; }
+.fog.f1 { top: 18%; background: radial-gradient(closest-side, rgba(255,103,102,.35), transparent); animation: fogDrift 18s ease-in-out infinite alternate; }
+.fog.f2 { top: 50%; background: radial-gradient(closest-side, rgba(220,215,213,.18), transparent); animation: fogDrift 24s ease-in-out infinite alternate-reverse; }
+@keyframes fogDrift { from { translate: -12% 0; } to { translate: 12% -4%; } }
+.tcandle, .lamp { position: absolute; width: 26%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; mix-blend-mode: screen;
+  background: radial-gradient(closest-side, rgba(255,190,120,.6), rgba(255,140,80,.18) 45%, transparent 75%); animation: candle 2.6s ease-in-out infinite; }
+.lamp { left: 82%; top: 86%; width: 46%; background: radial-gradient(closest-side, rgba(255,214,150,.45), rgba(255,170,90,.12) 50%, transparent 75%); animation-duration: 4s; }
+.clock-rays { position: absolute; left: 50%; top: 24%; width: 150%; aspect-ratio: 1; translate: -50% -50%; mix-blend-mode: screen;
+  background: conic-gradient(from 0deg, transparent 0 8deg, rgba(140,170,255,.10) 10deg 14deg, transparent 16deg 40deg, rgba(140,170,255,.08) 42deg 47deg, transparent 49deg 75deg, rgba(140,170,255,.1) 77deg 80deg, transparent 82deg 120deg, rgba(140,170,255,.08) 122deg 127deg, transparent 129deg 170deg, rgba(140,170,255,.1) 172deg 176deg, transparent 178deg 230deg, rgba(140,170,255,.08) 232deg 236deg, transparent 238deg 290deg, rgba(140,170,255,.1) 292deg 296deg, transparent 298deg 360deg);
+  -webkit-mask: radial-gradient(closest-side, transparent 30%, #000 45%, transparent 100%); mask: radial-gradient(closest-side, transparent 30%, #000 45%, transparent 100%); animation: swirl 160s linear infinite, beam 8s ease-in-out infinite; }
+.gear { position: absolute; fill: #0c1226; stroke: rgba(201,206,214,.25); stroke-width: 1; opacity: .9; }
+.gear.g1 { width: 46%; left: -18%; top: 47%; animation: swirl 40s linear infinite; }
+.gear.g2 { width: 30%; left: 18%; top: 61%; animation: swirl 26s linear infinite reverse; }
+.gear.g3 { width: 40%; right: -16%; top: 52%; animation: swirl 34s linear infinite reverse; }
+
+/* Altar: firelit wood & earthy oranges */
+#r-altar { --walnut-a: #24150D; --wood-a: #3B2418; --terracotta: #A65A3A; --ember: #C8642A; --ochre: #C9973E; --glow-a: #F3D9B1; }
+#r-altar.room { position: relative; overflow: hidden; container-type: size; padding-block: 12px 0; background: var(--walnut-a); color: var(--glow-a); }
+.othala-glow { position: absolute; left: 50.4%; top: 73.2%; width: 22%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; mix-blend-mode: screen; opacity: 0;
+  background: radial-gradient(closest-side, rgba(255,200,120,.85), rgba(200,100,42,.3) 50%, transparent 80%); }
+.othala-glow.lit { animation: othala 2.6s ease-out; }
+@keyframes othala { 0% { opacity: 0; scale: .6; } 30% { opacity: 1; scale: 1.15; } 100% { opacity: 0; scale: 1; } }
+.altar-panel { position: relative; z-index: 1; max-height: 54cqh; overflow-y: auto; overscroll-behavior: contain; padding: 14px; border-radius: 18px; display: grid; gap: 12px;
+  background: rgba(36,21,13,.6); border: 1px solid rgba(201,151,62,.3); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: 0 12px 30px rgba(36,21,13,.45); }
+.altar-date { margin: 0; font-size: .74rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ochre); }
+.altar-today { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.altar-moon { margin: -2px 0 0; font-size: .86rem; color: #e2c9a6; }
+.altar-moon span { color: var(--glow-a); }
+.altar-today > div { display: grid; gap: 2px; padding: 8px; border-radius: 10px; background: rgba(166,90,58,.22); }
+.altar-today .k { font-size: .64rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ochre); }
+.altar-today .v { font-family: var(--serif); font-size: .98rem; line-height: 1.2; }
+.altar-aff { margin: 0; font-family: var(--serif); font-style: italic; font-size: 1.15rem; line-height: 1.3; text-wrap: balance; }
+.altar-rune { display: flex; align-items: center; gap: 12px; }
+.altar-rune .stone { width: 54px; height: 64px; font-size: 1.8rem; flex: 0 0 auto; }
+.altar-rune h4 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 1.15rem; }
+.altar-rune p { margin: 2px 0 0; font-size: .88rem; color: #e2c9a6; }
+#r-altar .btn { background: var(--ember); color: #fff3e2; }
+/* Altar: seasonal wheel */
+#r-altar { --season: #C8642A; }
+.altar-panel { border-color: color-mix(in srgb, var(--season) 45%, transparent) !important; }
+.season { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 10px; border-radius: 14px; color: inherit;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--season) 30%, transparent), rgba(36,21,13,.25)); border: 1px solid color-mix(in srgb, var(--season) 50%, transparent); }
+.wheel-mini { width: 74px; height: 74px; flex: 0 0 auto; overflow: visible; }
+.wheel-mini .mark { animation: markGlow 3s ease-in-out infinite; }
+@keyframes markGlow { 0%,100% { opacity: .75; } 50% { opacity: 1; } }
+.season-txt { display: grid; gap: 1px; min-width: 0; }
+.season-txt .k { font-size: .64rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ochre); }
+.season-name { font-family: var(--serif); font-size: 1.3rem; line-height: 1.15; }
+.season-line { font-size: .86rem; color: #e2c9a6; line-height: 1.3; }
+.season-next { font-size: .8rem; color: var(--glow-a); margin-top: 3px; }
+.season-next::after { content: " ›"; color: var(--ochre); }
+.season-try { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; margin-top: -4px; }
+.season-try::-webkit-scrollbar { display: none; }
+.season-try span { flex: 0 0 auto; padding: 5px 10px; border-radius: 999px; font-size: .78rem; white-space: nowrap; background: rgba(36,21,13,.45); border: 1px solid color-mix(in srgb, var(--season) 40%, transparent); color: #f0dcbc; }
+#seasonFx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.sheet .sab-sec { margin-top: 14px; }
+.sheet .sab-sec h3 { margin: 0 0 4px; font-family: var(--serif); font-weight: 400; font-size: 1.1rem; color: var(--candle); }
+.sheet .sab-sec ul { margin: 4px 0 0; padding-left: 18px; }
+.sheet .sab-sec li { margin: 3px 0; }
+.sheet .swatches { display: flex; gap: 6px; margin-top: 6px; }
+.sheet .swatches i { width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); }
+
+
+/* Bookcase: dark wood & sage */
+#r-bookcase { --walnut: #2B1D14; --mahogany: #4A2F23; --oak: #8B5E3C; --sage-b: #9CAF88; --parchment: #EDE4D3;
+  color: var(--parchment);
+  background: repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 2px, transparent 2px 38px, rgba(139,94,60,.05) 38px 40px, transparent 40px 90px),
+    radial-gradient(80% 30% at 50% 28%, rgba(156,175,136,.14), transparent 70%), linear-gradient(180deg, transparent, var(--walnut) 60%); }
+#r-bookcase .shelf { border-bottom-color: var(--mahogany); border-bottom-width: 12px; background: linear-gradient(rgba(43,29,20,.2), rgba(43,29,20,.6)); box-shadow: 0 14px 18px -10px rgba(0,0,0,.75), inset 0 -2px 0 var(--oak); }
+#r-bookcase .book::before, #r-bookcase .book::after { background: rgba(237,228,211,.45); }
+#r-bookcase .book span { color: var(--parchment); }
+#r-bookcase .book .count { background: var(--sage-b); color: var(--walnut); }
+#r-bookcase .book[data-add] span { color: var(--sage-b) !important; }
+#r-bookcase .book[data-add] { border-color: rgba(156,175,136,.45) !important; }
+#r-bookcase .intro, #r-bookcase .label { color: #c9bfa9; }
+#r-bookcase .add-btn { color: var(--sage-b); }
+#r-bookcase .row { background: rgba(74,47,35,.45); border-color: rgba(139,94,60,.35); }
+#r-bookcase .row:hover { background: rgba(74,47,35,.7); }
+#r-bookcase .row b { color: var(--parchment); }
+#r-bookcase .row small { color: #c9bfa9; }
+#r-bookcase .chip { color: var(--sage-b); }
+#r-bookcase .example { color: #c9bfa9; border-color: rgba(156,175,136,.35); }
+
+/* Kitchen */
+.recipes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.recipe { position: relative; text-align: left; padding: 14px 12px 12px; min-height: 140px; border-radius: 4px; background: #e9dcc1; color: #3a2a1c; box-shadow: 0 6px 14px rgba(0,0,0,.4);
+  display: flex; flex-direction: column; gap: 6px; transition: transform .3s cubic-bezier(.3,1.4,.5,1); }
+.recipe:nth-child(odd) { transform: rotate(-1.2deg); } .recipe:nth-child(even) { transform: rotate(1deg); }
+.recipe:hover { transform: rotate(0) translateY(-4px); }
+.recipe .kind { font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; color: #7a5a35; }
+.recipe b { font-family: var(--serif); font-weight: 400; font-size: 1.12rem; line-height: 1.15; }
+.recipe small { font-size: .8rem; color: #6b5640; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.recipe::before { content: ""; position: absolute; top: -6px; left: 50%; width: 38px; height: 12px; margin-left: -19px; background: rgba(232,182,96,.55); transform: rotate(-3deg); }
+
+/* Kitchen: English cottagecore */
+#r-kitchen { --cream: #F5EFE0; --linen: #E8D9C0; --rose-k: #D8A7A0; --moss: #7D8B5E; --honey: #D9A84E; --bark: #5A4636;
+  color: var(--bark); padding-top: 0;
+  background-color: var(--cream);
+  background-image: radial-gradient(circle at 12px 12px, rgba(216,167,160,.35) 2px, transparent 2.6px), radial-gradient(circle at 36px 30px, rgba(125,139,94,.28) 1.6px, transparent 2.2px);
+  background-size: 48px 48px; }
+#r-kitchen.room { position: relative; overflow: hidden; container-type: size; padding-block: 0; background: var(--cream); }
+.scene .herb { position: absolute; max-width: none; transform-origin: 50% 0; animation: herbSway 6s ease-in-out infinite; }
+@keyframes herbSway { 0%,100% { rotate: -1.6deg; } 50% { rotate: 1.6deg; } }
+.scene .sunbeam { position: absolute; right: 0; top: 13%; width: 85%; height: 70%; mix-blend-mode: soft-light;
+  background: linear-gradient(225deg, rgba(255,246,214,.95), rgba(255,236,190,.35) 40%, transparent 72%);
+  clip-path: polygon(100% 0, 100% 22%, 18% 100%, 0 78%); filter: blur(10px); animation: beam 9s ease-in-out infinite; }
+@keyframes beam { 0%,100% { opacity: .55; } 50% { opacity: .95; } }
+.kitchen-panel { position: relative; z-index: 1; margin-top: 13cqh; max-height: 60cqh; overflow-y: auto; overscroll-behavior: contain; padding: 4px 12px 14px; border-radius: 16px;
+  background: rgba(245,239,224,.72); border: 1px solid rgba(90,70,54,.18); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); box-shadow: 0 10px 30px rgba(90,70,54,.25); }
+#r-kitchen .valance { height: 30px; margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 10px calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  background: repeating-linear-gradient(90deg, rgba(216,167,160,.55) 0 10px, transparent 10px 20px), repeating-linear-gradient(0deg, rgba(216,167,160,.55) 0 10px, transparent 10px 20px), var(--cream);
+  -webkit-mask: radial-gradient(12px 10px at 12px 100%, transparent 98%, #000) 0 0 / 24px 100%; mask: radial-gradient(12px 10px at 12px 100%, transparent 98%, #000) 0 0 / 24px 100%;
+  box-shadow: 0 3px 6px rgba(90,70,54,.15); }
+#r-kitchen .intro { color: #7a6553; }
+#r-kitchen .label { color: var(--moss); font-weight: 700; }
+#r-kitchen .add-btn { color: var(--ink); background: var(--honey); border-radius: 999px; padding: 5px 12px; font-weight: 700; }
+#r-kitchen .recipe { background: var(--linen); color: var(--bark); border: 1px solid rgba(90,70,54,.15); box-shadow: 0 6px 12px rgba(90,70,54,.18);
+  background-image: linear-gradient(transparent 31px, rgba(216,167,160,.35) 32px); background-size: 100% 22px; background-position: 0 6px; }
+#r-kitchen .recipe .kind { color: var(--moss); font-weight: 700; }
+#r-kitchen .recipe small { color: #6f5a48; }
+#r-kitchen .recipe::before { background: rgba(216,167,160,.75); }
+#r-kitchen .add-btn:focus-visible, #r-kitchen .recipe:focus-visible { outline-color: var(--moss); }
+
+/* Hearth: Rori's palette */
+#r-hearth { --aura: #852616; --sunbeam: #DA7134; --eclipse: #2A0001; --bliss: #E89154; --ardent: #FFD5A9;
+  color: var(--ardent);
+  background: radial-gradient(90% 30% at 35% 22%, rgba(218,113,52,.32), transparent 70%), radial-gradient(70% 30% at 85% 42%, rgba(133,38,22,.5), transparent 70%), linear-gradient(180deg, transparent, var(--eclipse) 75%); }
+#r-hearth.room { position: relative; overflow: hidden; container-type: size; padding-block: 10px 0; }
+#r-hearth { --S: max(177.78cqw, 100cqh); --shift: clamp(0px, 282px + .587 * var(--S) - 100cqh, .07 * var(--S)); }
+#r-hearth .scene { bottom: calc(-1 * var(--shift)); }
+.scene { position: absolute; z-index: 0; bottom: 0; left: 50%; translate: -50% 0; width: 100%; width: max(100%, calc(100cqh * 0.5625)); aspect-ratio: 9 / 16; max-width: none; pointer-events: none; }
+.scene .bg { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; display: block; }
+.scene .glow { position: absolute; left: 49.7%; top: 73.5%; width: 62%; height: 26%; translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255,170,80,.55), rgba(218,113,52,.22) 45%, transparent 75%); mix-blend-mode: screen; animation: hearthGlow 3.2s ease-in-out infinite; }
+@keyframes hearthGlow { 0%,100% { opacity: .75; scale: 1; } 18% { opacity: .95; scale: 1.04; } 34% { opacity: .7; } 52% { opacity: 1; scale: 1.06; } 70% { opacity: .8; scale: 1.01; } 86% { opacity: .92; } }
+.scene .cauldron { position: absolute; left: 39.444%; top: 49.896%; width: 20.556%; height: 18.854%; max-width: none; transform-origin: 50% 0; animation: sway 5.5s ease-in-out infinite; }
+.scene .flick { position: absolute; left: 49.7%; top: 70%; width: 30%; height: 14%; translate: -50% -50%; border-radius: 50% 50% 40% 40%; mix-blend-mode: screen;
+  background: radial-gradient(closest-side, rgba(255,220,140,.5), rgba(255,140,50,.2) 55%, transparent); animation: flick .9s steps(1) infinite; }
+@keyframes flick { 0% { opacity: .55; scale: 1 1; } 25% { opacity: .9; scale: .96 1.1; } 50% { opacity: .4; scale: 1.04 .94; } 75% { opacity: .8; scale: 1 1.06; } }
+@keyframes sway { 0%,100% { rotate: -.8deg; } 50% { rotate: .8deg; } }
+.scene .steam { position: absolute; left: 49.7%; top: 60.8%; width: 0; height: 0; }
+.scene .steam span { position: absolute; left: -22px; top: -10px; width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255,235,215,.32), transparent); filter: blur(4px); opacity: 0; animation: steam 5s ease-out infinite; }
+.scene .steam span:nth-child(2) { animation-delay: 1.7s; left: -30px; }
+.scene .steam span:nth-child(3) { animation-delay: 3.4s; left: -14px; }
+@keyframes steam { 0% { opacity: 0; transform: translateY(0) scale(.6); } 20% { opacity: .9; } 100% { opacity: 0; transform: translate(10px, -150px) scale(2.2); } }
+.scene canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hearth-panel { position: relative; z-index: 1; box-sizing: border-box; height: calc(100cqh - .587 * var(--S) + var(--shift) - 22px); overflow-y: auto; overscroll-behavior: contain; padding: 12px; border-radius: 16px;
+  background: rgba(42,0,1,.58); border: 1px solid rgba(232,145,84,.22); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+.hearth-panel .label { margin-top: 10px; }
+#hearthList { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; touch-action: pan-x pan-y;
+  margin: 0 -12px; padding: 2px 12px 8px; scroll-padding: 0 12px; scrollbar-width: none; }
+#hearthList::-webkit-scrollbar { display: none; }
+#hearthList .row { flex: 0 0 78%; scroll-snap-align: start; align-content: start; }
+
+#hearthList .row:hover { transform: translateY(-2px); }
+.cats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.cat { padding: 5px 12px; border-radius: 999px; border: 1px solid rgba(255,213,169,.25); font-size: .85rem; color: var(--bliss); transition: background .2s, color .2s; }
+.cat[aria-pressed="true"] { background: var(--sunbeam); border-color: var(--sunbeam); color: var(--eclipse); font-weight: 700; }
+#r-hearth .intro, #r-hearth .label { color: var(--bliss); }
+#r-hearth .add-btn { color: var(--ardent); }
+#r-hearth .row { background: rgba(133,38,22,.32); border-color: rgba(232,145,84,.28); }
+#r-hearth .row:hover { background: rgba(133,38,22,.5); }
+#r-hearth .row b { color: var(--ardent); }
+#r-hearth .row small { color: var(--bliss); }
+#r-hearth .chip { color: var(--sunbeam); }
+#r-hearth .example { color: var(--bliss); border-color: rgba(232,145,84,.35); }
+
+/* Crystal ball */
+.orb-wrap { display: grid; place-items: center; padding: 10px 0 4px; }
+.orb { position: relative; width: min(260px, 72vw); aspect-ratio: 1; max-width: 100%; border-radius: 50%; overflow: hidden; display: grid; place-items: center; padding: 34px; text-align: center;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.35), transparent 22%), radial-gradient(circle at 50% 55%, #6c56a8, #2b1f52 60%, #120c24);
+  box-shadow: 0 0 60px rgba(150,120,230,.35), inset 0 -20px 40px rgba(0,0,0,.5); }
+.orb::before { content: ""; position: absolute; inset: -30%; background: conic-gradient(from 0deg, transparent, rgba(200,180,255,.25), transparent 40%, rgba(160,220,255,.2), transparent 70%); animation: swirl 9s linear infinite; filter: blur(14px); }
+.orb.stir::before { animation-duration: 1.2s; }
+@keyframes swirl { to { transform: rotate(360deg); } }
+.orb p { position: relative; font-family: var(--serif); font-style: italic; font-size: 1.18rem; line-height: 1.3; text-wrap: balance; transition: opacity .6s, filter .6s; }
+.orb.stir p { opacity: 0; filter: blur(6px); }
+.stand { width: 150px; height: 26px; margin-top: -8px; border-radius: 0 0 50% 50% / 0 0 100% 100%; background: linear-gradient(#7a5233, #3b2618); }
+.hint { text-align: center; font-size: .82rem; color: var(--vellum-dim); margin-top: 8px; }
+
+/* Divination */
+.moon-card { display: grid; grid-template-columns: 84px 1fr; gap: 14px; align-items: center; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: linear-gradient(135deg, rgba(120,140,220,.12), transparent); }
+.moon-card canvas { width: 84px; height: 84px; }
+.moon-card h3 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 1.3rem; }
+.moon-card p { margin: 2px 0 0; font-size: .86rem; color: var(--vellum-dim); }
+.moon-card .num { font-variant-numeric: tabular-nums; color: var(--vellum); }
+.tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 16px 0 12px; padding: 4px; border-radius: 12px; background: rgba(0,0,0,.25); }
+.tab { padding: 8px 2px; border-radius: 9px; font-size: .84rem; color: var(--vellum-dim); }
+.tab[aria-selected="true"] { background: var(--dusk); color: var(--candle); box-shadow: 0 0 0 1px var(--line); }
+.stage { min-height: 300px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.btn { padding: 10px 20px; border-radius: 999px; background: var(--candle); color: var(--ink); font-weight: 700; letter-spacing: .03em; transition: transform .15s; }
+.btn:active { transform: scale(.96); }
+.btn.ghost { background: transparent; color: var(--candle); border: 1px solid var(--candle); font-weight: 500; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.reading { text-align: center; max-width: 30em; }
+.reading h4 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 1.3rem; }
+.reading p { margin: 4px 0 0; color: var(--vellum-dim); font-size: .92rem; }
+
+.cards3 { display: flex; gap: 10px; justify-content: center; perspective: 900px; }
+.tcard { width: 92px; height: 150px; position: relative; transform-style: preserve-3d; transition: transform .8s cubic-bezier(.3,1.2,.4,1); }
+.tcard.flipped { transform: rotateY(180deg); }
+.tcard.rev .face.front .art { transform: rotate(180deg); }
+.face { position: absolute; inset: 0; border-radius: 8px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 8px 6px; }
+.face.back { background: repeating-linear-gradient(45deg, #2a2148 0 6px, #241c3e 6px 12px); border: 2px solid var(--candle); }
+.face.back::after { content: "☾"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 2rem; color: var(--candle); }
+.face.front { transform: rotateY(180deg); background: #efe2c6; color: #33241a; border: 2px solid #b48a49; }
+.tcard { width: 92px; height: 158px; padding: 0; border: 0; background: none; color: inherit; }
+.face.front { padding: 0; overflow: hidden; background: #0d0018; border: 2px solid #B131FA; box-shadow: 0 0 14px rgba(255,28,192,.45), inset 0 0 0 1px rgba(255,28,192,.4); }
+.face.front img { width: 100%; height: 100%; object-fit: cover; display: block; max-width: none; }
+.tcard.rev .face.front img { transform: rotate(180deg); }
+.card-big { width: min(240px, 62vw); aspect-ratio: 350 / 600; margin: 4px auto 10px; border-radius: 12px; overflow: hidden; border: 2px solid #B131FA; box-shadow: 0 0 26px rgba(255,28,192,.5), 0 0 60px rgba(28,58,255,.3); }
+.card-big img { width: 100%; height: 100%; display: block; max-width: none; }
+.card-big.rev img { transform: rotate(180deg); }
+.face.front .numr { font-family: var(--serif); font-size: .8rem; }
+.face.front .art { font-size: 2.1rem; line-height: 1; color: #6a3f7a; }
+.face.front .nm { font-family: var(--display); font-size: .72rem; text-align: center; line-height: 1.1; }
+.pos { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--vellum-dim); text-align: center; margin-top: 6px; }
+
+.pouch { display: flex; gap: 10px; justify-content: center; min-height: 110px; align-items: center; }
+.stone { width: 70px; height: 84px; border-radius: 46% 54% 48% 52% / 55% 50% 50% 45%; background: radial-gradient(circle at 35% 30%, #cdbfa8, #8e8170 60%, #5e5448); display: grid; place-items: center;
+  font-family: var(--rune); font-size: 2.2rem; color: #2a1e14; box-shadow: 0 8px 14px rgba(0,0,0,.5); animation: cast .7s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes cast { from { transform: translateY(-80px) rotate(-60deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.bowl { position: relative; width: min(280px, 80vw); aspect-ratio: 1; max-width: 100%; border-radius: 50%; overflow: hidden; border: 6px solid #3d3346; box-shadow: inset 0 0 40px #000, 0 0 30px rgba(140,160,255,.15); background: #07060c; }
+.bowl canvas { width: 100%; height: 100%; display: block; }
+.bowl .vision { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--serif); font-style: italic; font-size: 1.3rem; color: #cfd6ff; text-shadow: 0 0 12px #8090ff; opacity: 0; transition: opacity 2s; padding: 40px; text-align: center; }
+.bowl .vision.show { opacity: .9; }
+
+.board { position: relative; width: 100%; max-width: 380px; aspect-ratio: 1.45; border-radius: 18px; background: radial-gradient(ellipse at center, #c9a874, #8a6338); color: #2b1a0e; font-family: var(--display); box-shadow: 0 10px 24px rgba(0,0,0,.5); overflow: hidden; }
+.board .glyph { position: absolute; transform: translate(-50%, -50%); font-size: clamp(.8rem, 3.6vw, 1.05rem); }
+.board .corner { font-size: clamp(.85rem, 3.8vw, 1.1rem); }
+.planchette { position: absolute; width: 54px; height: 62px; transform: translate(-50%, -40%); transition: left 1s ease-in-out, top 1s ease-in-out; pointer-events: none; }
+.planchette svg { width: 100%; height: 100%; filter: drop-shadow(0 4px 4px rgba(0,0,0,.45)); }
+.ask { display: flex; gap: 8px; width: 100%; max-width: 380px; }
+.ask input { flex: 1; min-width: 0; }
+
+/* Astrology: lapis, silver & marble */
+#r-astrology { --lapis: #1B2F7A; --lapis-deep: #0B1440; --cobalt: #2A4BB0; --silver: #C9CED6; --silver-hi: #EEF1F5; --marble: #E6E8EC; --grey: #5B616D; --grey-lt: #9AA1AE;
+  color: var(--silver);
+  background: radial-gradient(80% 35% at 50% 22%, rgba(42,75,176,.45), transparent 70%), linear-gradient(180deg, transparent, var(--lapis-deep) 55%); }
+.wheel-wrap { display: grid; place-items: center; padding: 4px 0 2px; }
+.wheel { width: min(320px, 86vw); max-width: 100%; aspect-ratio: 1; filter: drop-shadow(0 10px 24px rgba(0,0,0,.55)); }
+.wheel .spin { animation: swirl 240s linear infinite; transform-origin: 0 0; }
+.wheel .sg { font-family: "Noto Sans Symbols", "Segoe UI Symbol", serif; cursor: pointer; }
+.wheel .sg:hover text { fill: var(--silver-hi); }
+.today { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.tcell { padding: 10px 8px; border-radius: 12px; text-align: center; color: var(--grey);
+  background: radial-gradient(circle at 30% 20%, #fff, var(--marble) 60%, #d5d9df); box-shadow: inset 0 0 0 1px rgba(91,97,109,.18), 0 6px 14px rgba(0,0,0,.35); }
+.tcell .k { font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; color: var(--grey-lt); }
+.tcell .g { font-family: "Noto Sans Symbols", serif; font-size: 1.5rem; line-height: 1.2; color: var(--lapis); }
+.tcell .v { font-family: var(--serif); font-size: 1.02rem; color: var(--grey); }
+.mychart { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mychart label { display: grid; gap: 4px; font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; color: var(--grey-lt); }
+.mychart select { width: 100%; font: inherit; font-size: .9rem; color: var(--silver-hi); background: rgba(11,20,64,.7); border: 1px solid rgba(201,206,214,.35); border-radius: 10px; padding: 8px 6px; }
+.signs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.sign { display: grid; justify-items: center; gap: 0; padding: 8px 2px; border-radius: 10px; border: 1px solid rgba(201,206,214,.22); background: rgba(27,47,122,.35); transition: transform .2s, background .2s; }
+.sign:hover { transform: translateY(-2px); background: rgba(42,75,176,.5); }
+.sign span:first-child { font-family: "Noto Sans Symbols", serif; font-size: 1.35rem; color: var(--silver-hi); }
+.sign span:last-child { font-size: .74rem; color: var(--silver); }
+#r-astrology .intro, #r-astrology .label { color: var(--grey-lt); }
+#r-astrology .add-btn { color: var(--silver-hi); }
+#r-astrology .row { background: rgba(27,47,122,.4); border-color: rgba(201,206,214,.22); }
+#r-astrology .row small { color: var(--grey-lt); }
+#r-astrology .chip { color: var(--silver); }
+.sheet .facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin-top: 10px; font-size: .95rem; }
+.sheet .facts dt { color: var(--vellum-dim); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; align-self: center; }
+.sheet .facts dd { margin: 0; }
+
+/* Crystal ball: sunset gradient over smoke, grey writing */
+#r-crystal { --rasp: #CA2851; --coral: #FF6766; --apricot: #FFB173; --cream-c: #FFE3B3; --smoke: #1f1b1b; --grey: #b9b3b1; --grey-hi: #dcd7d5; --grey-ink: #3d3739;
+  color: var(--grey);
+  background: radial-gradient(65% 32% at 50% 24%, rgba(255,103,102,.18), transparent 70%), radial-gradient(90% 50% at 50% 30%, #3a3232, var(--smoke) 75%); }
+#r-crystal .orb { background: radial-gradient(circle at 34% 28%, rgba(255,255,255,.55), transparent 18%), radial-gradient(circle at 50% 60%, var(--cream-c), var(--apricot) 38%, var(--coral) 62%, var(--rasp) 92%);
+  box-shadow: 0 0 70px rgba(255,103,102,.38), 0 0 18px rgba(255,177,115,.3), inset 0 -24px 40px rgba(120,10,40,.45); }
+#r-crystal .orb::before { background: conic-gradient(from 0deg, transparent, rgba(255,255,255,.35), transparent 35%, rgba(202,40,81,.3), transparent 65%, rgba(255,227,179,.4), transparent); }
+#r-crystal .orb p { color: var(--grey-ink); }
+#r-crystal .stand { background: linear-gradient(#4a4242, #221d1d); box-shadow: 0 8px 18px rgba(0,0,0,.5); }
+#r-crystal .hint, #r-crystal .label { color: var(--grey); }
+#r-crystal .add-btn { color: var(--apricot); }
+#r-crystal .row { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.12); backdrop-filter: blur(4px); }
+#r-crystal .row:hover { background: rgba(255,255,255,.09); }
+#r-crystal .row b { color: var(--grey-hi); }
+#r-crystal .chip { color: var(--coral); }
+#r-crystal .example { color: var(--grey); border-color: rgba(255,255,255,.18); }
+#r-crystal .orb:focus-visible { outline-color: var(--apricot); }
+
+/* Crystal Ball: Rori's art + mist */
+#r-crystal.room { container-type: size; background: #2a1f22; }
+#r-crystal .fog { opacity: .55; }
+#r-crystal .fog.f1 { top: 2%; height: 30%; background: radial-gradient(closest-side, rgba(255,177,115,.32), transparent); }
+#r-crystal .fog.f2 { top: 24%; height: 28%; background: radial-gradient(closest-side, rgba(230,220,225,.3), transparent); }
+#r-crystal .fog.f3 { top: 40%; height: 26%; background: radial-gradient(closest-side, rgba(255,103,102,.28), transparent); animation: fogDrift 30s ease-in-out infinite alternate; animation-delay: -9s; }
+.swirl { position: absolute; left: 50.3%; top: 68.4%; width: 38.4%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; overflow: hidden; mix-blend-mode: screen; }
+.swirl i { position: absolute; inset: -25%; border-radius: 50%; filter: blur(10px); animation: swirl 14s linear infinite; }
+.swirl i:nth-child(1) { background: conic-gradient(from 0deg at 45% 55%, transparent, rgba(255,177,115,.45), transparent 22%, rgba(202,40,81,.35), transparent 48%, rgba(255,227,179,.4), transparent 72%, rgba(190,150,255,.3), transparent); }
+.swirl i:nth-child(2) { background: conic-gradient(from 120deg at 58% 42%, transparent, rgba(255,103,102,.4), transparent 30%, rgba(200,170,255,.32), transparent 60%); animation-duration: 9s; animation-direction: reverse; }
+.swirl i:nth-child(3) { inset: 18%; background: radial-gradient(closest-side, rgba(255,227,179,.35), transparent); animation: orbPulse 4.5s ease-in-out infinite; }
+@keyframes orbPulse { 0%,100% { opacity: .45; scale: .9; } 50% { opacity: 1; scale: 1.08; } }
+#r-crystal.stir .swirl i:nth-child(1) { animation-duration: 1.4s; }
+#r-crystal.stir .swirl i:nth-child(2) { animation-duration: 1s; }
+#r-crystal.stir .swirl i:nth-child(3) { opacity: 1; scale: 1.25; animation: none; transition: scale .4s; }
+.ball-tap { position: absolute; z-index: 2; left: 50%; bottom: calc(31.6 / 100 * max(100cqh, 177.78cqw)); width: calc(.384 * max(100cqw, 56.25cqh)); aspect-ratio: 1; translate: -50% 50%;
+  border-radius: 50%; background: transparent; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.ball-tap:focus-visible { outline: 2px solid var(--apricot); outline-offset: 4px; }
+.aff { position: absolute; z-index: 1; left: 0; right: 0; top: 7cqh; padding-inline: 28px; text-align: center; pointer-events: none; }
+#orbText { margin: 0 auto; max-width: 21em; font-family: var(--serif); font-style: italic; font-size: clamp(1.5rem, 7.2cqw, 2.3rem); line-height: 1.25; text-wrap: balance;
+  color: var(--grey-hi); text-shadow: 0 1px 2px rgba(40,25,30,.55), 0 0 22px rgba(60,35,45,.55); transition: opacity .6s, filter .6s; }
+#r-crystal.stir #orbText { opacity: 0; filter: blur(8px); }
+#r-crystal .aff .hint { margin-top: 14px; color: var(--grey-hi); opacity: .8; text-shadow: 0 1px 6px rgba(40,25,30,.8); }
+.aff-panel { position: absolute; z-index: 1; left: 12px; right: 12px; bottom: 10px; padding: 2px 10px 10px; border-radius: 16px;
+  background: rgba(40,28,32,.55); border: 1px solid rgba(255,255,255,.12); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+#affList { display: flex; gap: 10px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
+#affList::-webkit-scrollbar { display: none; }
+#affList .row { flex: 0 0 86%; scroll-snap-align: start; padding: 8px 12px; min-height: 0; }
+#affList .row b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 1rem; min-width: 0; }
+.aff-panel .label { margin: 4px 0 6px; }
+@media (prefers-reduced-motion: reduce) { .swirl i, #r-crystal .fog { animation: none; } }
+/* Astrology: Rori's clock tower art */
+#r-astrology.room { container-type: size; background: #0b0f1c; }
+.astro-scene { top: 0; bottom: auto; }
+.clock-glow, .clock-sweep, .astro-stars, .clock-marks { position: absolute; left: 50.45%; top: 23.67%; width: 72%; aspect-ratio: 1; height: auto; translate: -50% -50%; border-radius: 50%; }
+.clock-glow { width: 90%; background: radial-gradient(closest-side, rgba(70,110,255,.35), transparent 75%); mix-blend-mode: screen; animation: clockBreath 7s ease-in-out infinite; }
+@keyframes clockBreath { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+.astro-stars { inset: auto; pointer-events: none; }
+.clock-sweep { overflow: hidden; mix-blend-mode: screen; }
+.clock-sweep::before { content: ""; position: absolute; inset: 0; background: conic-gradient(from 0deg, transparent 0 82%, rgba(160,190,255,.06) 90%, rgba(220,230,255,.28) 99.5%, transparent 100%); animation: swirl 60s linear infinite; }
+.clock-marks { pointer-events: none; }
+.clock-sign { position: absolute; width: 16%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: transparent; border: 0; padding: 0; pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background .3s, box-shadow .3s; }
+.clock-sign:hover, .clock-sign:focus-visible { background: radial-gradient(closest-side, rgba(238,241,245,.22), transparent); outline: none; }
+.cm { position: absolute; translate: -50% -50%; display: grid; place-items: center; width: 9%; aspect-ratio: 1; border-radius: 50%; font-family: "Noto Sans Symbols", serif; font-size: clamp(.8rem, 4cqw, 1.15rem); color: #0B1440;
+  background: radial-gradient(circle at 35% 30%, #fff, #dfe3ea 55%, #9aa1ae); box-shadow: 0 0 12px rgba(238,241,245,.75), 0 0 28px rgba(120,150,255,.6); animation: markPulse 4s ease-in-out infinite; }
+.cm.moon { width: 7.5%; font-size: clamp(.7rem, 3.4cqw, 1rem); animation-delay: -2s; }
+@keyframes markPulse { 0%,100% { box-shadow: 0 0 10px rgba(238,241,245,.6), 0 0 22px rgba(120,150,255,.45); } 50% { box-shadow: 0 0 16px rgba(238,241,245,.95), 0 0 36px rgba(120,150,255,.75); } }
+#r-astrology .lamp { left: 63.2%; top: 64.4%; width: 50%; z-index: 0; }
+#r-astrology .room-scroll { pointer-events: none; }
+#r-astrology .room-scroll > * { pointer-events: auto; }
+.wheel-wrap[hidden] { display: none; }
+#r-astrology .mychart { padding: 8px; border-radius: 12px; background: rgba(11,15,28,.6); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+.clock-space { height: calc(.455 * max(177.78cqw, 100cqh)); pointer-events: none !important; }
+#r-astrology .today, #r-astrology .mychart, #r-astrology .signs, #r-astrology .list { position: relative; }
+#r-astrology .label { padding: 4px 10px; border-radius: 10px; background: rgba(11,15,28,.55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); text-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .clock-glow, .clock-sweep::before, .cm { animation: none; } }
+/* Bookcase: Rori's library art */
+#r-bookcase .shelf { min-height: 0; align-items: flex-end; padding-top: 18px; scroll-snap-type: x proximity; overscroll-behavior-x: contain; scrollbar-width: none; }
+#r-bookcase .shelf::-webkit-scrollbar { display: none; }
+#r-bookcase .book { height: auto; padding: 16px 0; scroll-snap-align: start; }
+#r-bookcase .book span:first-child { line-height: 1; }
+
+#r-bookcase.room { container-type: size; background: #1a120c; }
+.book-scene { top: 0; bottom: auto; }
+.lantern, .page-glow { position: absolute; translate: -50% -50%; border-radius: 50%; mix-blend-mode: screen; }
+.lantern { width: 30%; aspect-ratio: 1; background: radial-gradient(closest-side, rgba(255,205,130,.6), rgba(255,150,70,.18) 45%, transparent 75%); animation: candle 2.7s ease-in-out infinite; }
+.lantern.small { width: 18%; }
+.page-glow { width: 30%; aspect-ratio: 1.8; background: radial-gradient(closest-side, rgba(255,226,170,.42), transparent 75%); animation: pageGlow 5s ease-in-out infinite; }
+@keyframes pageGlow { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
+.lectern { position: absolute; top: 44%; height: 29%; pointer-events: auto; background: transparent; border: 0; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; display: grid; place-items: center; }
+.lectern span { margin-top: 12%; padding: 3px 8px; border-radius: 999px; font-family: var(--serif); font-size: clamp(.72rem, 3.2cqw, .95rem); line-height: 1.15; text-align: center; max-width: 92%; color: var(--parchment);
+  background: rgba(26,18,12,.6); border: 1px solid rgba(156,175,136,.45); box-shadow: 0 0 14px rgba(255,210,140,.25); transition: background .3s, box-shadow .3s; }
+.lectern:hover span, .lectern:focus-visible span { background: rgba(74,47,35,.85); box-shadow: 0 0 22px rgba(255,210,140,.55); }
+.lectern:focus-visible { outline: none; }
+.book-panel.room-scroll { bottom: auto; max-height: calc(.43 * max(177.78cqw, 100cqh)); margin: 8px 10px 0; padding: 6px 10px 10px; border-radius: 16px;
+  background: rgba(26,18,12,.5); border: 1px solid rgba(139,94,60,.35); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+#r-bookcase .intro { margin: 2px 0 6px; font-size: .85rem; }
+.smoke-fx { position: absolute; inset: 0; width: 100%; height: 100%; }
+.swirl i:nth-child(1), .swirl i:nth-child(2) { opacity: .35; }
+.flame { position: absolute; width: 5.787%; height: 4.297%; transform-origin: 50% 92%; animation: flameSway 1.9s ease-in-out infinite; animation-delay: var(--d, 0s); }
+.flame img { display: block; width: 100%; height: 100%; max-width: none; transform-origin: 50% 92%; animation: flameFlick .45s steps(1) infinite; animation-delay: var(--d, 0s); }
+@keyframes flameSway { 0%,100% { rotate: -2deg; } 30% { rotate: 3deg; } 55% { rotate: -4deg; } 80% { rotate: 1.5deg; } }
+@keyframes flameFlick { 0% { scale: 1 1; } 20% { scale: .94 1.08; } 40% { scale: 1.04 .93; } 60% { scale: .97 1.12; } 80% { scale: 1.02 .97; } }
+@media (prefers-reduced-motion: reduce) { .flame, .flame img { animation: none; } }
+/* Divination: neon city night */
+#r-divination.room { position: relative; overflow: hidden; container-type: size; padding: 0; background: var(--night); }
+.div-scroll { position: absolute; inset: 0; z-index: 1; overflow-y: auto; overscroll-behavior: contain;
+  padding-block: 8px 28px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.scene .candle { position: absolute; width: 16%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; mix-blend-mode: screen;
+  background: radial-gradient(closest-side, rgba(255,214,150,.7), rgba(255,150,80,.25) 40%, transparent 75%); animation: candle 2.4s ease-in-out infinite; }
+@keyframes candle { 0%,100% { opacity: .7; scale: 1; } 23% { opacity: 1; scale: 1.08; } 41% { opacity: .65; scale: .96; } 63% { opacity: .95; scale: 1.05; } 82% { opacity: .78; } }
+#r-divination .stage { padding: 14px 10px; border-radius: 18px; background: rgba(13,0,24,.62); border: 1px solid rgba(177,49,250,.3); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+#r-divination .moon-card, #r-divination .tabs { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+#r-divination .label { text-shadow: 0 1px 6px #000; }
+#r-divination .row { -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); background: rgba(40,0,70,.6); }
+#r-divination .readings-empty, #r-divination #readings > .intro { padding: 10px 12px; border-radius: 12px; background: rgba(13,0,24,.6); }
+#r-divination { --pink: #FF1CC0; --violet: #B131FA; --deep: #4A0074; --blue: #1C3AFF; --night: #0d0018; --haze: #e9d6ff;
+  color: var(--haze);
+  background: radial-gradient(70% 28% at 15% 20%, rgba(177,49,250,.28), transparent 70%), radial-gradient(60% 25% at 90% 55%, rgba(28,58,255,.22), transparent 70%), radial-gradient(60% 25% at 20% 85%, rgba(255,28,192,.16), transparent 70%), linear-gradient(180deg, transparent, var(--night) 55%); }
+#r-divination .moon-card { border-color: rgba(177,49,250,.55); background: linear-gradient(135deg, rgba(74,0,116,.7), rgba(28,58,255,.18)); box-shadow: 0 0 22px rgba(177,49,250,.3), inset 0 0 18px rgba(255,28,192,.08); }
+#r-divination .moon-card canvas { filter: drop-shadow(0 0 10px rgba(233,214,255,.55)); }
+#r-divination .moon-card p { color: #c7a8ec; }
+#r-divination .tabs { background: rgba(13,0,24,.7); box-shadow: 0 0 0 1px rgba(177,49,250,.35); }
+#r-divination .tab { color: #c7a8ec; }
+#r-divination .tab[aria-selected="true"] { background: var(--deep); color: #fff; box-shadow: 0 0 0 1px var(--pink), 0 0 14px rgba(255,28,192,.55); text-shadow: 0 0 8px var(--pink); }
+#r-divination .btn { background: linear-gradient(90deg, var(--pink), var(--violet)); color: #fff; box-shadow: 0 0 18px rgba(255,28,192,.5); }
+#r-divination .btn.ghost { background: transparent; color: var(--pink); border-color: var(--pink); box-shadow: inset 0 0 10px rgba(255,28,192,.25), 0 0 10px rgba(255,28,192,.25); }
+#r-divination .reading p, #r-divination .pos, #r-divination .hint, #r-divination .intro, #r-divination .label { color: #c7a8ec; }
+#r-divination .face.back { background: repeating-linear-gradient(45deg, var(--deep) 0 6px, #36005a 6px 12px); border-color: var(--pink); box-shadow: 0 0 14px rgba(255,28,192,.45); }
+#r-divination .face.back::after { color: var(--pink); text-shadow: 0 0 10px var(--pink); }
+#r-divination .face.front { background: linear-gradient(170deg, #1a0430, var(--deep)); color: #fff; border-color: var(--violet); box-shadow: 0 0 16px rgba(177,49,250,.6); }
+#r-divination .face.front .art { color: var(--pink); text-shadow: 0 0 10px var(--pink); }
+#r-divination .face.front .numr { color: #9fb0ff; }
+#r-divination .stone { background: radial-gradient(circle at 35% 30%, #5a1f8a, #2a0848 60%, #12021f); color: var(--pink); text-shadow: 0 0 10px var(--pink); box-shadow: 0 0 16px rgba(177,49,250,.55); }
+#r-divination .bowl { border-color: var(--deep); box-shadow: inset 0 0 40px #000, 0 0 30px rgba(177,49,250,.45), 0 0 0 2px rgba(255,28,192,.4); }
+#r-divination .bowl .vision { color: #ffd0f2; text-shadow: 0 0 12px var(--pink); }
+#r-divination .board { background: radial-gradient(ellipse at center, #2c0650, #12021f); color: var(--haze); box-shadow: 0 0 0 2px var(--violet), 0 0 26px rgba(177,49,250,.55); }
+#r-divination .board .corner { color: var(--pink); text-shadow: 0 0 8px var(--pink); }
+#r-divination .planchette svg path { fill: rgba(28,58,255,.25); stroke: #9fb0ff; }
+#r-divination .planchette svg circle { fill: rgba(255,28,192,.15); stroke: var(--pink); }
+#r-divination .planchette svg { filter: drop-shadow(0 0 8px var(--blue)); }
+#r-divination .row { background: rgba(74,0,116,.35); border-color: rgba(177,49,250,.35); }
+#r-divination .row small { color: #c7a8ec; }
+#r-divination .chip { color: var(--pink); }
+#r-divination input { border-color: rgba(177,49,250,.5); background: rgba(13,0,24,.6); }
+
+input, textarea { width: 100%; font: inherit; color: var(--vellum); background: rgba(0,0,0,.25); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+textarea { min-height: 180px; resize: vertical; line-height: 1.5; }
+
+/* Nav */
+nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid var(--line); background: rgba(15,12,22,.85); backdrop-filter: blur(8px);
+  padding-block: 6px calc(6px + env(safe-area-inset-bottom, 0px)); padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
+.dock button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; font-size: .58rem; min-width: 0; color: var(--vellum-dim); transition: color .3s; }
+.dock svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s; }
+.dock button.on { color: var(--candle); }
+.dock button.on svg { transform: translateY(-2px) scale(1.1); }
+.dock .glow { position: absolute; top: -1px; height: 2px; width: calc((100% - 16px) / 7 - 12px); left: 14px; background: var(--candle); box-shadow: 0 0 12px var(--candle); border-radius: 2px; will-change: transform; }
+
+/* Sheet */
+.scrim { position: absolute; inset: 0; z-index: 10; background: rgba(5,3,10,.6); opacity: 0; pointer-events: none; transition: opacity .3s; }
+.scrim.open { opacity: 1; pointer-events: auto; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 11; max-height: 88%; overflow-y: auto; border-radius: 20px 20px 0 0; background: var(--dusk); border-top: 1px solid var(--line);
+  transform: translateY(calc(100% + 60px)); visibility: hidden; transition: transform .45s cubic-bezier(.2,.9,.2,1), visibility 0s .45s;
+  padding-block: 10px calc(24px + env(safe-area-inset-bottom, 0px)); padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); }
+.sheet.open { transform: none; visibility: visible; transition-delay: 0s; }
+.grab { width: 40px; height: 4px; border-radius: 4px; background: var(--line); margin: 0 auto 12px; }
+.sheet h2 { font-family: var(--serif); font-weight: 400; font-size: 1.6rem; margin: 4px 0 6px; line-height: 1.15; text-wrap: balance; }
+.sheet .body { white-space: pre-wrap; color: var(--vellum); font-size: 1rem; margin-top: 12px; }
+.sheet .bar { display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-top: 20px; flex-wrap: wrap; }
+.sheet form { display: grid; gap: 10px; }
+.sheet label { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--vellum-dim); display: grid; gap: 4px; }
+.danger { color: var(--rose); font-size: .9rem; }
+.example { display: inline-block; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--vellum-dim); border: 1px dashed var(--line); border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .track { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+
+
+<div class="app" id="app">
+  <canvas id="stars" aria-hidden="true"></canvas>
+  <header class="top">
+    <div>
+      <div class="room-sub" id="roomSub">Notes on my books</div>
+      <div class="room-title" id="roomTitle">Bookcase</div>
+    </div>
+    <div class="top-right"><div class="moon-chip" title="Today's moon"><canvas id="moonMini" width="52" height="52"></canvas><span id="moonMiniTxt">…</span></div>
+    <button class="menu-btn" id="menuBtn" aria-label="Backup and settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></button></div>
+  </header>
+
+  <main class="track" id="track">
+    <!-- ALTAR -->
+    <section class="room" id="r-altar" data-title="Altar" data-sub="Hearthcraft" data-tint="#3b2418">
+      <div class="scene" aria-hidden="true">
+        <img class="bg" src="altar-bg.jpg" alt="">
+        <div class="glow" style="top:97%;width:90%;height:22%"></div>
+        <span class="candle" style="left:7.98%;top:69.9%;width:10%"></span>
+        <span class="candle" style="left:13.1%;top:71.8%;width:10%;animation-delay:-1.1s"></span>
+        <span class="othala-glow" id="othalaGlow"></span>
+        <canvas id="seasonFx"></canvas>
+      </div>
+      <div class="altar-panel">
+        <p class="altar-date" id="altarDate"></p>
+        <button class="season" id="season" aria-label="About this season">
+          <svg class="wheel-mini" id="wheelMini" viewBox="-50 -50 100 100" aria-hidden="true"></svg>
+          <span class="season-txt"><span class="k" id="seasonK">This season</span><span class="season-name" id="seasonName"></span><span class="season-line" id="seasonLine"></span><span class="season-next" id="altarSabbat"></span></span>
+        </button>
+        <div class="season-try" id="seasonTry"></div>
+        <p class="altar-moon"><span id="altarMoon"></span> · next esbat <span id="altarEsbat"></span></p>
+        <p class="altar-aff" id="altarAff"></p>
+        <div class="altar-rune" id="altarRune"></div>
+      </div>
+    </section>
+
+    <!-- BOOKCASE -->
+    <section class="room" id="r-bookcase" data-title="Bookcase" data-sub="Notes on my books" data-tint="#4a2f23">
+      <div class="scene book-scene">
+        <img class="bg" src="bookcase-bg.jpg" alt="" aria-hidden="true">
+        <span class="lantern" style="left:5.8%;top:40.8%"></span><span class="lantern" style="left:93.9%;top:40.8%;animation-delay:-1.1s"></span><span class="lantern small" style="left:67.8%;top:4.3%;animation-delay:-2.3s"></span>
+        <span class="page-glow" style="left:11%;top:47.4%"></span><span class="page-glow" style="left:88.6%;top:47.4%;animation-delay:-3s"></span>
+        <canvas class="motes-lite" data-motes="#ffe2b0" aria-hidden="true"></canvas>
+        <button class="lectern" data-book="Book of Shadows" style="left:0;width:24%"><span>Book of Shadows</span></button>
+        <button class="lectern" data-book="Grimoire" style="right:0;width:24%"><span>Grimoire</span></button>
+      </div>
+      <div class="room-scroll book-panel">
+      <p class="intro">Each book on the shelf is a notebook. Tap a spine to open your notes on it.</p>
+      <div class="shelf" id="shelf"></div>
+      <div class="label"><span>Recently written</span><button class="add-btn" data-add="bookcase">+ New note</button></div>
+      <div class="list" id="bookRecent"></div>
+      </div>
+    </section>
+
+    <!-- KITCHEN -->
+    <section class="room" id="r-kitchen" data-title="Kitchen" data-sub="Recipes & potions" data-tint="#5a4636">
+      <div class="scene" aria-hidden="true">
+        <img class="bg" src="kitchen-bg.jpg" alt="">
+        <div class="sunbeam"></div>
+        <img class="herb" src="kitchen-herb0.png" alt="" style="left:28.889%;top:1.964%;width:10.159%;height:13.393%;animation-duration:6.2s">
+        <img class="herb" src="kitchen-herb1.png" alt="" style="left:37.143%;top:1.964%;width:10.159%;height:15.179%;animation-duration:7.4s;animation-delay:-2s">
+        <img class="herb" src="kitchen-herb2.png" alt="" style="left:46.667%;top:2.5%;width:10.159%;height:13.393%;animation-duration:5.6s;animation-delay:-1s">
+        <img class="herb" src="kitchen-herb3.png" alt="" style="left:54.921%;top:2.857%;width:10.159%;height:12.5%;animation-duration:6.8s;animation-delay:-3.5s">
+        <img class="herb" src="kitchen-herb4.png" alt="" style="left:64.127%;top:3.571%;width:10.159%;height:12.5%;animation-duration:7.9s;animation-delay:-1.4s">
+        <canvas id="motes"></canvas>
+      </div>
+      <div class="kitchen-panel">
+        <p class="intro">Recipe cards for teas, oils, baths, and brews. Tap a card to read or edit it.</p>
+        <div class="label"><span>Recipe box</span><button class="add-btn" data-add="kitchen">+ New recipe</button></div>
+        <div class="recipes" id="recipes"></div>
+      </div>
+    </section>
+
+    <!-- HEARTH -->
+    <section class="room" id="r-hearth" data-title="Hearth" data-sub="Home & hearth craft" data-tint="#5a2614">
+      <div class="scene" aria-hidden="true">
+        <img class="bg" src="hearth-bg.jpg" alt="">
+        <div class="glow"></div>
+        <div class="flick"></div>
+        <img class="cauldron" src="hearth-cauldron.png" alt="">
+        <div class="steam"><span></span><span></span><span></span></div>
+        <canvas id="sparks"></canvas>
+      </div>
+      <div class="hearth-panel">
+        <div class="cats" id="hearthCats"></div>
+        <div class="label"><span>By the fire</span><button class="add-btn" data-add="hearth">+ New note</button></div>
+        <div class="list" id="hearthList"></div>
+      </div>
+    </section>
+
+    <!-- CRYSTAL BALL -->
+    <section class="room" id="r-crystal" data-title="Crystal Ball" data-sub="Affirmations" data-tint="#3a3030">
+      <div class="scene" aria-hidden="true">
+        <img class="bg" src="crystal-bg.jpg" alt="">
+        <div class="fog f1"></div><div class="fog f2"></div><div class="fog f3"></div>
+        <div class="swirl"><i></i><i></i><i></i></div>
+        <canvas class="smoke-fx" id="smokeFx"></canvas>
+        <span class="candle" style="left:19.7%;top:70.4%"></span><span class="candle" style="left:81.6%;top:70.4%;animation-delay:-1.3s"></span>
+        <span class="flame" style="left:16.898%;top:67.708%"><img src="crystal-flameL.png" alt=""></span>
+        <span class="flame" style="left:78.704%;top:67.969%;--d:-.7s"><img src="crystal-flameR.png" alt=""></span>
+      </div>
+      <button class="ball-tap" id="orb" aria-label="Show another affirmation"></button>
+      <div class="aff">
+        <p id="orbText">I am rooted, and I am growing.</p>
+        <p class="hint">Tap the ball for another affirmation</p>
+      </div>
+      <div class="aff-panel">
+        <div class="label"><span>My affirmations</span><button class="add-btn" data-add="crystal">+ Add</button></div>
+        <div class="list" id="affList"></div>
+      </div>
+    </section>
+
+    <!-- DIVINATION -->
+    <section class="room" id="r-divination" data-title="Divination Deck" data-sub="Moon, cards & signs" data-tint="#120420">
+      <div class="scene" aria-hidden="true">
+        <img class="bg" src="divination-bg.jpg" alt="">
+        <span class="candle" style="left:11.97%;top:56.25%"></span>
+        <span class="candle" style="left:90.9%;top:50.3%;animation-delay:-.7s"></span>
+        <span class="candle" style="left:99%;top:41%;animation-delay:-1.3s"></span>
+        <span class="candle" style="left:77.8%;top:12.7%;animation-delay:-.4s"></span>
+        <span class="candle" style="left:15.7%;top:23.6%;animation-delay:-1.9s;scale:.7"></span>
+        <span class="candle" style="left:1%;top:46.3%;animation-delay:-1s"></span>
+        <canvas id="divfx"></canvas>
+      </div>
+      <div class="div-scroll">
+      <div class="moon-card">
+        <canvas id="moonBig" width="168" height="168" aria-hidden="true"></canvas>
+        <div>
+          <h3 id="moonName">…</h3>
+          <p><span class="num" id="moonIllum"></span> illuminated · day <span class="num" id="moonAge"></span> of 29.5</p>
+          <p id="moonNext"></p>
+          <p id="moonTip" style="margin-top:6px;color:var(--vellum)"></p>
+        </div>
+      </div>
+      <div class="tabs" role="tablist" id="tabs">
+        <button class="tab" role="tab" data-tab="tarot" aria-selected="true">Tarot</button>
+        <button class="tab" role="tab" data-tab="runes" aria-selected="false">Runes</button>
+        <button class="tab" role="tab" data-tab="scry" aria-selected="false">Scrying</button>
+        <button class="tab" role="tab" data-tab="board" aria-selected="false">Spirit Board</button>
+      </div>
+      <div class="stage" id="stage"></div>
+      <div class="label"><span>Readings journal</span></div>
+      <div class="list" id="readings"></div>
+      </div>
+    </section>
+
+    <!-- ASTROLOGY -->
+    <section class="room" id="r-astrology" data-title="Astrology" data-sub="Stars & signs" data-tint="#14245e">
+      <div class="scene astro-scene">
+        <img class="bg" src="astrology-bg.jpg" alt="">
+        <div class="clock-glow"></div>
+        <canvas class="astro-stars" id="astroStars"></canvas>
+        <div class="clock-sweep"></div>
+        <div class="clock-marks" id="clockMarks"></div>
+        <span class="lamp"></span>
+      </div>
+      <div class="room-scroll">
+      <div class="clock-space" aria-hidden="true"></div>
+      <div class="wheel-wrap" hidden><svg class="wheel" id="wheel" viewBox="-160 -160 320 320" role="img" aria-label="Zodiac wheel showing today's Sun and Moon"></svg></div>
+      <div class="today" id="astroToday"></div>
+      <div class="label"><span>My chart</span></div>
+      <div class="mychart" id="myChart"></div>
+      <div class="label"><span>The twelve signs</span></div>
+      <div class="signs" id="signGrid"></div>
+      <div class="label"><span>Astrology notes</span><button class="add-btn" data-add="astrology">+ New note</button></div>
+      <div class="list" id="astroList"></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="dock" id="dock" aria-label="Rooms">
+    <span class="glow" id="glow"></span>
+    <button data-go="0"><svg viewBox="0 0 24 24"><path d="M4 11h16M5 11v9M19 11v9M4 15h16"/><path d="M12 3l3 3-3 3-3-3z"/><path d="M8 8.5l1.2-1.2M16 8.5l-1.2-1.2"/></svg>Altar</button>
+    <button data-go="1"><svg viewBox="0 0 24 24"><path d="M4 4h3v16H4zM9 6h3v14H9zM14 4.5l3-.8 3.6 15.4-3 .7z"/><path d="M3 20.5h18"/></svg>Bookcase</button>
+    <button data-go="2"><svg viewBox="0 0 24 24"><path d="M5 10h14l-1.5 9a2 2 0 0 1-2 1.7h-7a2 2 0 0 1-2-1.7z"/><path d="M3 10h18M9 6c0-1.5 1-2 1-3.5M13 6c0-1.5 1-2 1-3.5"/></svg>Kitchen</button>
+    <button data-go="3"><svg viewBox="0 0 24 24"><path d="M3 21V10l9-6 9 6v11z"/><path d="M12 19c-2.2 0-3.5-1.5-3.5-3.3 0-2.2 2.3-3 2.6-5.2 1.6 1 4.4 3 4.4 5.2 0 1.8-1.3 3.3-3.5 3.3z"/></svg>Hearth</button>
+    <button data-go="4"><svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="7"/><path d="M7 19h10l-1.5-2.5h-7zM9 8.5a3.5 3.5 0 0 1 3-2.5"/></svg>Crystal</button>
+    <button data-go="5"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="9" height="14" rx="1.5" transform="rotate(-10 8.5 12)"/><rect x="11" y="5" width="9" height="14" rx="1.5" transform="rotate(8 15.5 12)"/><path d="M15.5 9.5a2.2 2.2 0 1 0 1 3.8 2.6 2.6 0 0 1-1-3.8z"/></svg>Divination</button>
+    <button data-go="6"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="1.2"/></svg>Astrology</button>
+  </nav>
+
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Note"><div class="grab"></div><div id="sheetBody"></div></div>
+</div>
+
+<script>
+(() => {
+  // ---------- Storage ----------
+  const KEY = "hearthbook.notes.v1";
+  const seed = [
+    { s: "bookcase", g: "Herbs & Their Lore", t: "Rosemary", b: "Remembrance, protection, clarity.\nBurn dried sprigs in place of sage for cleansing.\nGrows best by the front door.", ex: 1 },
+    { s: "bookcase", g: "Herbs & Their Lore", t: "Mugwort cautions", b: "Dream work herb. Avoid during pregnancy. Use as a tea sparingly or tuck under the pillow in a sachet.", ex: 1 },
+    { s: "bookcase", g: "Moon Magic Notes", t: "Working with the waxing moon", b: "Start new projects, money and growth spells. Write intentions on the first crescent.", ex: 1 },
+    { s: "bookcase", g: "Crystals A–Z", t: "Amethyst", b: "Calm, intuition, sleep. Cleanse under moonlight, not sun (fades).", ex: 1 },
+    { s: "bookcase", g: "Tarot Study Journal", t: "The Tower, reflections", b: "Sudden change that clears what was already unstable. Not always bad news.", ex: 1 },
+    { s: "bookcase", g: "Kitchen Witchery", t: "Chapter 3 highlights", b: "Stir clockwise to draw in, counterclockwise to banish.\nSalt at the threshold.", ex: 1 },
+    { s: "kitchen", g: "Tea", t: "Sleepy Moon Tea", b: "1 tsp chamomile\n½ tsp lavender\n1 tsp lemon balm\nHoney to taste\n\nSteep 7 minutes, covered. Stir clockwise while stating your intention for rest.", ex: 1 },
+    { s: "kitchen", g: "Oil", t: "Protection Oil", b: "Carrier: 30 ml olive oil\n3 bay leaves, crushed\nPinch of black pepper\nSprig of rosemary\n\nLet sit 1 lunar cycle. Strain. Anoint doorframes.", ex: 1 },
+    { s: "kitchen", g: "Bath", t: "Full Moon Bath Salts", b: "1 cup Epsom salt\n½ cup sea salt\nDried rose petals\n5 drops lavender oil\n\nCharge on the windowsill under the full moon.", ex: 1 },
+    { s: "kitchen", g: "Potion", t: "Abundance Simmer Pot", b: "1 orange, sliced\n2 cinnamon sticks\n5 cloves\nBay leaf with a wish written on it\n\nSimmer on low, top up with water as needed.", ex: 1 },
+    { s: "kitchen", g: "Bake", t: "Rosemary Hearth Bread", b: "Knead with intention. Score a protective symbol on top before baking.", ex: 1 },
+    { s: "hearth", g: "Cleansing", t: "Monthly home cleanse", b: "Open every window.\nSweep from the back of the house to the front door.\nSalt water wipe on thresholds.\nRing a bell in each corner.", ex: 1 },
+    { s: "hearth", g: "Protection", t: "Witch bottle", b: "Jar, nails, rosemary, salt, a little vinegar. Seal with candle wax and bury near the entry.", ex: 1 },
+    { s: "hearth", g: "Altar", t: "Kitchen altar setup", b: "Small shelf above the stove: brass candle, bowl of salt, a sprig of whatever herb is in season.", ex: 1 },
+    { s: "hearth", g: "Seasonal", t: "Yule log ideas", b: "Birch log, holly, pinecones. Three candles for past, present, and future.", ex: 1 },
+    { s: "astrology", g: "Transits", t: "Mercury retrograde survival list", b: "Back up the phone.\nRe-read messages before sending.\nGood time to revisit old projects, not start new ones.", ex: 1 },
+    { s: "astrology", g: "Birth chart", t: "My big three", b: "Birth date, time and place go here.\nNotes on what each placement means to me.", ex: 1 },
+    { s: "crystal", g: "Self", t: "I am rooted, and I am growing.", b: "", ex: 1 },
+    { s: "crystal", g: "Self", t: "My intuition is a voice worth trusting.", b: "", ex: 1 },
+    { s: "crystal", g: "Home", t: "My home is a place of warmth and protection.", b: "", ex: 1 },
+    { s: "crystal", g: "Abundance", t: "I welcome what is meant for me.", b: "", ex: 1 },
+    { s: "crystal", g: "Self", t: "I release what no longer serves me, gently.", b: "", ex: 1 },
+  ];
+  let notes;
+  try { notes = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { notes = null; }
+  if (!Array.isArray(notes)) notes = seed.map((n, i) => ({ id: "n" + i, ...n, d: Date.now() - i * 3.6e6 }));
+  if (!notes.some(n => n.s === "astrology")) seed.filter(n => n.s === "astrology").forEach((n, i) => notes.push({ id: "na" + i, ...n, d: Date.now() - i * 3.6e6 }));
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(notes)); } catch (e) {} };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const bySec = s => notes.filter(n => n.s === s).sort((a, b) => b.d - a.d);
+  const $ = id => document.getElementById(id);
+
+  // ---------- Rooms & swipe ----------
+  const track = $("track"), rooms = [...document.querySelectorAll(".room")], dockBtns = [...document.querySelectorAll("[data-go]")];
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const tints = rooms.map(r => hex(r.dataset.tint));
+  let current = -1;
+  function onScroll() {
+    const w = track.clientWidth || 1, x = track.scrollLeft / w;
+    const i = Math.max(0, Math.min(rooms.length - 1, Math.floor(x))), f = x - i, j = Math.min(i + 1, rooms.length - 1);
+    const c = tints[i].map((v, k) => Math.round(v + (tints[j][k] - v) * f));
+    $("app").style.setProperty("--tint", `rgb(${c})`);
+    $("glow").style.transform = `translateX(${x * 100}%) translateX(${x * 12}px)`;
+    stars.shift = x;
+    const r = Math.round(x);
+    if (r !== current) setRoom(r);
+  }
+  function setRoom(r) {
+    current = r;
+    rooms.forEach((el, k) => el.classList.toggle("active", k === r));
+    dockBtns.forEach((b, k) => b.classList.toggle("on", k === r));
+    const t = $("roomTitle"); t.textContent = rooms[r].dataset.title; $("roomSub").textContent = rooms[r].dataset.sub;
+    t.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 350, easing: "ease-out" });
+    const h = "#" + rooms[r].id.slice(2); if (location.hash !== h) history.replaceState(null, "", h);
+  }
+  const go = (i, smooth = true) => track.scrollTo({ left: i * track.clientWidth, behavior: smooth ? "smooth" : "auto" });
+  track.addEventListener("scroll", () => requestAnimationFrame(onScroll), { passive: true });
+  dockBtns.forEach(b => b.addEventListener("click", () => go(+b.dataset.go)));
+  document.addEventListener("keydown", e => {
+    if (e.target.closest("input,textarea") || $("sheet").classList.contains("open")) { if (e.key === "Escape") closeSheet(); return; }
+    if (e.key === "ArrowRight") go(Math.min(current + 1, rooms.length - 1)); if (e.key === "ArrowLeft") go(Math.max(current - 1, 0));
+  });
+  // Mouse drag-to-swipe for desktop
+  let drag = null;
+  track.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse" || e.target.closest("button,input,textarea,canvas,#hearthList,#affList")) return; drag = { x: e.clientX, l: track.scrollLeft }; track.style.scrollSnapType = "none"; });
+  addEventListener("pointermove", e => { if (drag) track.scrollLeft = drag.l - (e.clientX - drag.x); });
+  addEventListener("pointerup", e => { if (!drag) return; const dx = e.clientX - drag.x; track.style.scrollSnapType = ""; const base = Math.round(drag.l / track.clientWidth); drag = null; go(Math.max(0, Math.min(rooms.length - 1, base + (dx < -50 ? 1 : dx > 50 ? -1 : 0)))); });
+  function fromHash() { const i = rooms.findIndex(r => "#" + r.id.slice(2) === location.hash); go(i < 0 ? 0 : i, false); }
+  addEventListener("hashchange", fromHash);
+  addEventListener("resize", () => go(current < 0 ? 0 : current, false));
+
+  // ---------- Starfield ----------
+  const stars = { shift: 0 };
+  (function () {
+    const cv = $("stars"), ctx = cv.getContext("2d"); let pts = [];
+    function size() { cv.width = cv.clientWidth * devicePixelRatio; cv.height = cv.clientHeight * devicePixelRatio; pts = Array.from({ length: 80 }, () => ({ x: Math.random() * cv.width * 1.6, y: Math.random() * cv.height * .7, r: Math.random() * 1.3 + .2, p: Math.random() * 6, d: Math.random() * .6 + .2 })); }
+    size(); addEventListener("resize", size);
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    (function tick(t) {
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      for (const s of pts) {
+        const x = ((s.x - stars.shift * 40 * s.d * devicePixelRatio) % (cv.width * 1.6) + cv.width * 1.6) % (cv.width * 1.6);
+        ctx.globalAlpha = .25 + .5 * (still ? .6 : (Math.sin(t / 900 + s.p) + 1) / 2);
+        ctx.fillStyle = "#f3e7cf"; ctx.beginPath(); ctx.arc(x, s.y, s.r * devicePixelRatio, 0, 7); ctx.fill();
+      }
+      requestAnimationFrame(tick);
+    })(0);
+  })();
+
+  // ---------- Moon ----------
+  const SYN = 29.530588853, NEW = Date.UTC(2000, 0, 6, 18, 14) / 864e5;
+  const age = ((Date.now() / 864e5 - NEW) % SYN + SYN) % SYN, phase = age / SYN;
+  const illum = (1 - Math.cos(2 * Math.PI * phase)) / 2;
+  const names = [["New Moon", 1.0], ["Waxing Crescent", 6.4], ["First Quarter", 8.4], ["Waxing Gibbous", 13.8], ["Full Moon", 15.8], ["Waning Gibbous", 21.1], ["Last Quarter", 23.1], ["Waning Crescent", 28.5], ["New Moon", 30]];
+  const pname = names.find(([, lim]) => age < lim)[0];
+  const tips = { "New Moon": "Set intentions and rest. A good night for planning.", "Waxing Crescent": "Plant seeds: start small spells for growth.", "First Quarter": "Take action on what you set in motion.", "Waxing Gibbous": "Refine and nurture. Keep going.", "Full Moon": "Charge crystals and water. Celebrate and give thanks.", "Waning Gibbous": "Share, teach, and express gratitude.", "Last Quarter": "Release and cleanse. Clear out the old.", "Waning Crescent": "Rest, reflect, and banish what lingers." };
+  function drawMoon(cv) {
+    const ctx = cv.getContext("2d"), w = cv.width, r = w / 2 - 2, c = w / 2, k = Math.cos(2 * Math.PI * phase);
+    ctx.clearRect(0, 0, w, w);
+    ctx.fillStyle = "#2d2a3d"; ctx.beginPath(); ctx.arc(c, c, r, 0, 7); ctx.fill();
+    const g = ctx.createRadialGradient(c * .8, c * .8, r * .1, c, c, r); g.addColorStop(0, "#fff8e6"); g.addColorStop(1, "#e3d3a8");
+    ctx.fillStyle = g; ctx.beginPath();
+    if (phase < .5) { ctx.arc(c, c, r, -Math.PI / 2, Math.PI / 2, false); ctx.ellipse(c, c, Math.abs(k) * r, r, 0, Math.PI / 2, -Math.PI / 2, k > 0); }
+    else { ctx.arc(c, c, r, Math.PI / 2, 3 * Math.PI / 2, false); ctx.ellipse(c, c, Math.abs(k) * r, r, 0, -Math.PI / 2, Math.PI / 2, k > 0); }
+    ctx.fill();
+  }
+  drawMoon($("moonMini")); drawMoon($("moonBig"));
+  $("moonMiniTxt").textContent = pname;
+  $("moonName").textContent = pname;
+  $("moonIllum").textContent = Math.round(illum * 100) + "%";
+  $("moonAge").textContent = age.toFixed(1);
+  const toFull = ((SYN / 2 - age) % SYN + SYN) % SYN, toNew = SYN - age;
+  const fmt = d => new Date(Date.now() + d * 864e5).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  $("moonNext").textContent = toFull < toNew ? `Next full moon ${fmt(toFull)}` : `Next new moon ${fmt(toNew)}`;
+  $("moonTip").textContent = tips[pname];
+
+  // ---------- Renderers ----------
+  const spineColors = ["#4A2F23", "#6E8A62", "#8B5E3C", "#3F4F38", "#5C3B2A", "#9CAF88", "#704A30", "#566B4C"];
+  const heights = [128, 114, 134, 108, 122, 130, 112, 120];
+  const exTag = n => n.ex ? '<span class="example">example</span>' : "";
+  const row = n => `<button class="row" data-open="${n.id}"><b>${esc(n.t)}${exTag(n)}</b><span class="chip">${esc(n.g)}</span><small>${esc(n.b.split("\n")[0] || " ")}</small></button>`;
+  let hearthFilter = "All";
+  function render() {
+    const books = [...new Set(bySec("bookcase").map(n => n.g))].filter(g => g !== "Book of Shadows" && g !== "Grimoire").sort();
+    $("shelf").innerHTML = books.map((g, i) => `<button class="book" data-book="${esc(g)}" style="min-height:${heights[i % 8] + 40}px;background:${spineColors[i % 8]}"><span>${esc(g)}</span><span class="count">${bySec("bookcase").filter(n => n.g === g).length}</span></button>`).join("")
+      + `<button class="book" data-add="bookcase" style="height:100px;background:transparent;border:1px dashed var(--line);box-shadow:none" aria-label="Add a book"><span style="color:var(--candle)">+ Add book</span></button>`;
+    $("bookRecent").innerHTML = bySec("bookcase").slice(0, 5).map(row).join("");
+    $("recipes").innerHTML = bySec("kitchen").map(n => `<button class="recipe" data-open="${n.id}"><span class="kind">${esc(n.g)}${n.ex ? " · example" : ""}</span><b>${esc(n.t)}</b><small>${esc(n.b)}</small></button>`).join("");
+    const cats = ["All", ...new Set(bySec("hearth").map(n => n.g))];
+    $("hearthCats").innerHTML = cats.map(c => `<button class="cat" data-cat="${esc(c)}" aria-pressed="${c === hearthFilter}">${esc(c)}</button>`).join("");
+    $("hearthList").innerHTML = bySec("hearth").filter(n => hearthFilter === "All" || n.g === hearthFilter).map(row).join("");
+    $("affList").innerHTML = bySec("crystal").map(n => `<button class="row" data-open="${n.id}"><b style="font-style:italic">${esc(n.t)}${exTag(n)}</b><span class="chip">${esc(n.g)}</span></button>`).join("");
+    $("astroList").innerHTML = bySec("astrology").map(row).join("");
+    const rd = bySec("divination");
+    $("readings").innerHTML = rd.length ? rd.map(row).join("") : `<p class="intro" style="margin:0">Your saved readings will appear here. Draw cards or cast runes, then tap “Save reading”.</p>`;
+  }
+
+  // ---------- Sheet ----------
+  const sheet = $("sheet"), scrim = $("scrim"), sb = $("sheetBody");
+  function openSheet(html) { sb.innerHTML = html; sheet.scrollTop = 0; sheet.classList.add("open"); scrim.classList.add("open"); setTimeout(() => sheet.querySelector("input,button")?.focus({ preventScroll: true }), 350); }
+  function closeSheet() { sheet.classList.remove("open"); scrim.classList.remove("open"); }
+  scrim.addEventListener("click", closeSheet);
+  const secLabel = { astrology: "Topic", bookcase: "Book", kitchen: "Type (Tea, Oil, Bath, Potion…)", hearth: "Category", crystal: "Theme", divination: "Kind" };
+  function viewNote(id) {
+    const n = notes.find(x => x.id === id); if (!n) return;
+    openSheet(`<span class="chip">${esc(n.g)}</span>${exTag(n)}<h2>${esc(n.t)}</h2><div class="body">${esc(n.b)}</div>
+      <div class="bar"><button class="danger" data-del="${n.id}">Delete</button><div class="btns"><button class="btn ghost" data-close>Close</button><button class="btn" data-edit="${n.id}">Edit</button></div></div>`);
+  }
+  function editNote(id, sec, group) {
+    const n = id ? notes.find(x => x.id === id) : { s: sec, g: group || "", t: "", b: "" };
+    const groups = [...new Set(bySec(n.s).map(x => x.g))];
+    openSheet(`<h2>${id ? "Edit" : "New"} ${n.s === "crystal" ? "affirmation" : n.s === "kitchen" ? "recipe" : "note"}</h2>
+      <form id="noteForm">
+        <label>${n.s === "crystal" ? "Affirmation" : "Title"}<input id="fT" required value="${esc(n.t)}" placeholder="${n.s === "kitchen" ? "Moon water lemonade" : "Title"}"></label>
+        <label>${secLabel[n.s]}<input id="fG" list="fGl" value="${esc(n.g)}" placeholder="${esc(groups[0] || "")}"><datalist id="fGl">${groups.map(g => `<option value="${esc(g)}">`).join("")}</datalist></label>
+        ${n.s === "crystal" ? "" : `<label>Notes<textarea id="fB" placeholder="Ingredients, steps, thoughts…">${esc(n.b)}</textarea></label>`}
+        <div class="bar"><span></span><div class="btns"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn" type="submit">Save</button></div></div>
+      </form>`);
+    $("noteForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const t = $("fT").value.trim(); if (!t) return;
+      const g = $("fG").value.trim() || groups[0] || "General", b = $("fB") ? $("fB").value : "";
+      if (id) Object.assign(n, { t, g, b, ex: 0, d: Date.now() }); else notes.push({ id: "n" + Date.now(), s: n.s, g, t, b, d: Date.now() });
+      save(); render(); closeSheet();
+    });
+  }
+  function openBook(g) {
+    const list = bySec("bookcase").filter(n => n.g === g);
+    openSheet(`<span class="chip">Notebook</span><h2>${esc(g)}</h2><div class="list" style="margin-top:12px">${list.map(row).join("")}</div>
+      <div class="bar"><span></span><div class="btns"><button class="btn ghost" data-close>Close</button><button class="btn" data-addin="${esc(g)}">+ Note in this book</button></div></div>`);
+  }
+
+  document.addEventListener("click", e => {
+    const t = e.target.closest("[data-open],[data-edit],[data-del],[data-close],[data-add],[data-book],[data-addin],[data-cat],[data-confirm]");
+    if (!t) return;
+    const d = t.dataset;
+    if (d.open) viewNote(d.open);
+    else if (d.edit) editNote(d.edit);
+    else if (d.confirm) { notes = notes.filter(n => n.id !== d.confirm); save(); render(); closeSheet(); }
+    else if (d.del) { t.outerHTML = `<span class="danger">Delete this? <button class="danger" style="text-decoration:underline" data-confirm="${d.del}">Yes, delete</button></span>`; }
+    else if (d.close !== undefined) closeSheet();
+    else if (d.add) editNote(null, d.add);
+    else if (d.book) openBook(d.book);
+    else if (d.addin) editNote(null, "bookcase", d.addin);
+    else if (d.cat) { hearthFilter = d.cat; render(); }
+  });
+
+  // ---------- Hearth sparks ----------
+  (function () {
+    const cv = $("sparks"), ctx = cv.getContext("2d"), still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let w = 0, h = 0, ps = [];
+    const size = () => { const d = devicePixelRatio || 1; w = cv.clientWidth; h = cv.clientHeight; cv.width = w * d; cv.height = h * d; ctx.setTransform(d, 0, 0, d, 0, 0); };
+    size(); addEventListener("resize", size);
+    const spawn = () => ({ x: w * (0.40 + Math.random() * 0.20), y: h * (0.725 + Math.random() * 0.04), vx: (Math.random() - .5) * .35, vy: -(0.5 + Math.random() * 1.1), life: 0, max: 70 + Math.random() * 90, r: .6 + Math.random() * 1.3 });
+    (function tick() {
+      requestAnimationFrame(tick);
+      if (still || current !== rooms.indexOf($("r-hearth"))) return;
+      if (!w) size();
+      ctx.clearRect(0, 0, w, h);
+      if (ps.length < 38 && Math.random() < .5) ps.push(spawn());
+      ps = ps.filter(p => p.life < p.max && p.y > h * .51);
+      for (const p of ps) {
+        p.life++; p.x += p.vx + Math.sin((p.life + p.r * 40) / 9) * .25; p.y += p.vy;
+        const a = 1 - p.life / p.max;
+        ctx.globalAlpha = a; ctx.fillStyle = p.life % 7 < 4 ? "#ffd27a" : "#ff8a3c";
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    })();
+  })();
+
+  // ---------- Kitchen dust motes ----------
+  (function () {
+    const cv = $("motes"), ctx = cv.getContext("2d"), still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let w = 0, h = 0, ms = [];
+    const size = () => { const d = devicePixelRatio || 1; w = cv.clientWidth; h = cv.clientHeight; cv.width = w * d; cv.height = h * d; ctx.setTransform(d, 0, 0, d, 0, 0);
+      ms = Array.from({ length: 34 }, () => ({ x: w * (.35 + Math.random() * .65), y: h * (.14 + Math.random() * .45), r: .6 + Math.random() * 1.4, p: Math.random() * 6, s: .1 + Math.random() * .25 })); };
+    size(); addEventListener("resize", size);
+    (function tick(t) {
+      requestAnimationFrame(tick);
+      if (still || current !== rooms.indexOf($("r-kitchen"))) return;
+      if (!w) size();
+      ctx.clearRect(0, 0, w, h);
+      for (const m of ms) {
+        m.y -= m.s * .3; m.x += Math.sin(t / 2400 + m.p) * .12;
+        if (m.y < h * .1) m.y = h * .6;
+        ctx.globalAlpha = .35 + .35 * Math.sin(t / 900 + m.p);
+        ctx.fillStyle = "#fff6dc"; ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, 7); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    })(0);
+  })();
+
+  // ---------- Crystal ball: curling smoke ----------
+  (function () {
+    const cv = $("smokeFx"), ctx = cv.getContext("2d"), room = $("r-crystal"), still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let w = 0, h = 0, out = [], inn = [], t0 = 0;
+    const cols = ["255,177,115", "255,120,110", "205,160,255", "255,215,190"];
+    const size = () => { const d = Math.min(devicePixelRatio || 1, 2); w = cv.clientWidth; h = cv.clientHeight; cv.width = w * d; cv.height = h * d; ctx.setTransform(d, 0, 0, d, 0, 0); out = []; inn = []; };
+    addEventListener("resize", size);
+    const B = () => ({ x: w * .503, y: h * .684, r: w * .19 });
+    const wisp = () => { const b = B(), side = Math.random() < .5 ? -1 : 1;
+      return { x: b.x + side * b.r * (.55 + Math.random() * .6), y: b.y + b.r * (.2 + Math.random() * .5), age: 0, max: 300 + Math.random() * 200, ph: Math.random() * 6.3, side,
+        sp: .25 + Math.random() * .3, amp: .5 + Math.random() * .7, c: cols[Math.floor(Math.random() * cols.length)], s: w * (.012 + Math.random() * .01) }; };
+    const curl = () => ({ a: Math.random() * 6.3, rr: Math.random(), age: 0, max: 300 + Math.random() * 300, ph: Math.random() * 6.3, va: (.012 + Math.random() * .014) * (Math.random() < .3 ? -1 : 1), c: cols[Math.floor(Math.random() * cols.length)], s: w * (.01 + Math.random() * .008) });
+    const dot = (x, y, r, c, a) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(${c},${a})`); g.addColorStop(1, `rgba(${c},0)`); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); };
+    (function tick(t) {
+      requestAnimationFrame(tick);
+      if (still || rooms[current] !== room) return;
+      if (!w || cv.clientWidth !== w) size();
+      const fast = room.classList.contains("stir") ? 3.2 : 1, b = B();
+      ctx.globalCompositeOperation = "destination-out"; ctx.fillStyle = "rgba(0,0,0,.035)"; ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = "screen";
+      if (out.length < 30 && Math.random() < .25) out.push(wisp());
+      if (inn.length < 16 && Math.random() < .25) inn.push(curl());
+      out = out.filter(p => p.age < p.max);
+      for (const p of out) {
+        p.age += fast; const k = p.age / p.max;
+        p.y -= p.sp * fast * (1 + k);
+        p.x += (Math.sin(p.age * .025 + p.ph) * p.amp * (1 + k * 2) + p.side * .15) * fast;
+        dot(p.x, p.y, p.s * (1 + k * 1.6), p.c, Math.sin(Math.PI * k) * .09);
+      }
+      ctx.save(); ctx.beginPath(); ctx.arc(b.x, b.y, b.r * .97, 0, 6.283); ctx.clip();
+      inn = inn.filter(p => p.age < p.max);
+      for (const p of inn) {
+        p.age += fast; const k = p.age / p.max;
+        p.a += p.va * fast;
+        const rad = b.r * (.15 + .7 * (.5 + .5 * Math.sin(p.age * .012 + p.ph)) * (.4 + .6 * p.rr));
+        dot(b.x + Math.cos(p.a) * rad, b.y + Math.sin(p.a) * rad * .85 - k * b.r * .2, p.s * (1 + k * 1.5), p.c, Math.sin(Math.PI * k) * .05);
+      }
+      ctx.restore(); ctx.globalCompositeOperation = "source-over";
+    })(0);
+  })();
+
+  // ---------- Astrology: twinkling stars in the clock glass ----------
+  (function () {
+    const cv = $("astroStars"), ctx = cv.getContext("2d"), still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let w = 0, stars = [];
+    const size = () => { const d = devicePixelRatio || 1; w = cv.clientWidth; cv.width = cv.height = w * d; ctx.setTransform(d, 0, 0, d, 0, 0);
+      stars = Array.from({ length: 34 }, () => { const a = Math.random() * 6.283, r = Math.sqrt(Math.random()) * w * .47; return { x: w / 2 + Math.cos(a) * r, y: w / 2 + Math.sin(a) * r, p: Math.random() * 7, sp: 500 + Math.random() * 900, r: .6 + Math.random() * 1.4 }; }); };
+    addEventListener("resize", size);
+    (function tick(t) {
+      requestAnimationFrame(tick);
+      if (still || current !== rooms.indexOf($("r-astrology"))) return;
+      if (!w || cv.clientWidth !== w) size();
+      ctx.clearRect(0, 0, w, w); ctx.fillStyle = "#eef1ff";
+      for (const s of stars) {
+        const a = Math.max(0, Math.sin(t / s.sp + s.p)) ** 4; if (a < .02) continue;
+        ctx.globalAlpha = a; const r = s.r * (1 + a);
+        ctx.beginPath(); ctx.moveTo(s.x, s.y - r * 3); ctx.lineTo(s.x + r * .5, s.y); ctx.lineTo(s.x, s.y + r * 3); ctx.lineTo(s.x - r * .5, s.y); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(s.x - r * 3, s.y); ctx.lineTo(s.x, s.y + r * .5); ctx.lineTo(s.x + r * 3, s.y); ctx.lineTo(s.x, s.y - r * .5); ctx.closePath(); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    })(0);
+  })();
+
+  // ---------- Divination smoke & sparkles ----------
+  (function () {
+    const cv = $("divfx"), ctx = cv.getContext("2d"), still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let w = 0, h = 0, smoke = [], stars = [];
+    const size = () => { const d = devicePixelRatio || 1; w = cv.clientWidth; h = cv.clientHeight; cv.width = w * d; cv.height = h * d; ctx.setTransform(d, 0, 0, d, 0, 0);
+      stars = Array.from({ length: 26 }, () => ({ x: Math.random() * w, y: Math.random() * h * .8, p: Math.random() * 7, r: .8 + Math.random() * 1.6, c: Math.random() < .5 ? "#ff8be0" : "#b9a7ff" })); };
+    size(); addEventListener("resize", size);
+    const puff = () => ({ x: w * (.6 + Math.random() * .09), y: h * .87, vx: (Math.random() - .5) * .3, vy: -(.35 + Math.random() * .35), r: w * .05, life: 0, max: 260 + Math.random() * 140, hue: Math.random() < .6 ? 225 : 285, ph: Math.random() * 6 });
+    (function tick(t) {
+      requestAnimationFrame(tick);
+      if (still || current !== rooms.indexOf($("r-divination"))) return;
+      if (!w) size();
+      ctx.clearRect(0, 0, w, h);
+      if (smoke.length < 26 && Math.random() < .12) smoke.push(puff());
+      smoke = smoke.filter(p => p.life < p.max);
+      ctx.globalCompositeOperation = "screen";
+      for (const p of smoke) {
+        p.life++; p.x += p.vx + Math.sin(p.life / 40 + p.ph) * .45; p.y += p.vy; p.r += .12;
+        const a = Math.sin(Math.PI * p.life / p.max) * .22;
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+        g.addColorStop(0, `hsla(${p.hue},90%,65%,${a})`); g.addColorStop(1, "transparent");
+        ctx.fillStyle = g; ctx.fillRect(p.x - p.r, p.y - p.r, p.r * 2, p.r * 2);
+      }
+      for (const s of stars) {
+        const a = Math.max(0, Math.sin(t / 700 + s.p)) ** 3;
+        ctx.globalAlpha = a; ctx.fillStyle = s.c;
+        ctx.beginPath(); ctx.moveTo(s.x, s.y - s.r * 3); ctx.lineTo(s.x + s.r * .6, s.y); ctx.lineTo(s.x, s.y + s.r * 3); ctx.lineTo(s.x - s.r * .6, s.y); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(s.x - s.r * 3, s.y); ctx.lineTo(s.x, s.y + s.r * .6); ctx.lineTo(s.x + s.r * 3, s.y); ctx.lineTo(s.x, s.y - s.r * .6); ctx.closePath(); ctx.fill();
+      }
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+    })(0);
+  })();
+
+  // ---------- Crystal ball ----------
+  const orb = $("orb"); let lastAff = "";
+  orb.addEventListener("click", () => {
+    const list = bySec("crystal"); if (!list.length) return;
+    $("r-crystal").classList.add("stir");
+    setTimeout(() => {
+      let pick; do { pick = list[Math.floor(Math.random() * list.length)].t; } while (list.length > 1 && pick === lastAff);
+      lastAff = pick; $("orbText").textContent = pick; $("r-crystal").classList.remove("stir");
+    }, 1100);
+  });
+
+  // ---------- Divination ----------
+  const MAJOR = [["The Fool","✦","New beginnings, a leap of faith","Hesitation, recklessness"],["The Magician","∞","Skill, will, making it happen","Scattered energy, trickery"],["The High Priestess","☽","Intuition, hidden knowledge","Ignoring your inner voice"],["The Empress","♀","Abundance, nurture, creativity","Neglect, creative block"],["The Emperor","♂","Structure, authority, stability","Rigidity, control"],["The Hierophant","⚷","Tradition, teaching, ritual","Breaking convention"],["The Lovers","♡","Union, choices, alignment","Imbalance, misalignment"],["The Chariot","⛭","Willpower, momentum, victory","Lack of direction"],["Strength","∞","Courage, gentle power","Self-doubt"],["The Hermit","✧","Solitude, inner guidance","Isolation, withdrawal"],["Wheel of Fortune","☸","Cycles, luck, turning points","Resistance to change"],["Justice","⚖","Truth, fairness, cause and effect","Unfairness, avoidance"],["The Hanged Man","⟁","Pause, surrender, new view","Stalling, indecision"],["Death","☠","Endings, transformation","Clinging to the old"],["Temperance","⚱","Balance, patience, blending","Excess, impatience"],["The Devil","⛧","Attachment, temptation","Release, breaking free"],["The Tower","⚡","Sudden change, revelation","Avoiding the inevitable"],["The Star","★","Hope, renewal, healing","Discouragement"],["The Moon","☾","Dreams, illusion, the unknown","Clarity returning"],["The Sun","☀","Joy, success, vitality","Temporary clouds"],["Judgement","♫","Awakening, a calling","Self-judgment"],["The World","◯","Completion, wholeness","Loose ends"]];
+  const ROMAN = ["0","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI"];
+  const RUNES = [["ᚠ","Fehu","Wealth, energy, earned reward"],["ᚢ","Uruz","Strength, health, raw power"],["ᚦ","Thurisaz","Protection, a gateway, caution"],["ᚨ","Ansuz","Messages, wisdom, communication"],["ᚱ","Raidho","Journey, rhythm, the right path"],["ᚲ","Kenaz","Insight, creativity, a torch in the dark"],["ᚷ","Gebo","Gifts, partnership, exchange"],["ᚹ","Wunjo","Joy, harmony, belonging"],["ᚺ","Hagalaz","Disruption that clears the way"],["ᚾ","Nauthiz","Need, patience, constraint"],["ᛁ","Isa","Stillness, a pause, waiting"],["ᛃ","Jera","Harvest, cycles, reward for effort"],["ᛇ","Eihwaz","Endurance, the axis between worlds"],["ᛈ","Perthro","Mystery, fate, what is hidden"],["ᛉ","Algiz","Protection, sanctuary, guardians"],["ᛊ","Sowilo","Success, the sun, wholeness"],["ᛏ","Tiwaz","Courage, honor, victory"],["ᛒ","Berkano","Birth, growth, new beginnings"],["ᛖ","Ehwaz","Movement, trust, partnership"],["ᛗ","Mannaz","The self, community, humanity"],["ᛚ","Laguz","Flow, intuition, water"],["ᛜ","Ingwaz","Gestation, inner growth"],["ᛞ","Dagaz","Breakthrough, dawn, awakening"],["ᛟ","Othala","Home, heritage, inheritance"]];
+  const VISIONS = ["a door left open", "a bird turning north", "roots beneath stone", "a key in still water", "two candles, one taller", "a path through tall grass", "a spiral of light", "an open hand", "a ring of seven stars"];
+  const pickN = (arr, n) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); };
+  let lastReading = null, scryRAF = 0;
+  function saveReading() { if (!lastReading) return; notes.push({ id: "n" + Date.now(), s: "divination", g: lastReading.g, t: lastReading.t, b: lastReading.b, d: Date.now() }); save(); render(); lastReading = null; const b = $("saveR"); if (b) { b.textContent = "Saved to journal"; b.disabled = true; } }
+  const stage = $("stage"), today = () => new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+
+  // Minor arcana: [rank, upright, reversed] per suit; files: w=Wands c=Cups s=Swords p=Pentacles, 01 Ace .. 14 King
+  const SUITS = [
+    ["Wands", "w", [["Ace","Inspiration, a spark, new energy","Delays, lack of drive"],["Two","Planning, bold choices","Fear of the unknown"],["Three","Expansion, looking ahead","Obstacles, slow progress"],["Four","Celebration, home, harmony","Unsettled, lack of support"],["Five","Competition, conflict, friction","Avoiding conflict"],["Six","Victory, recognition","Doubt, fall from grace"],["Seven","Standing your ground","Overwhelmed, giving up"],["Eight","Speed, swift action, news","Delays, frustration"],["Nine","Resilience, last stretch","Exhaustion, defensiveness"],["Ten","Burden, responsibility","Letting go of a load"],["Page","Enthusiasm, curiosity, a message","Restlessness, false starts"],["Knight","Adventure, passion, charging ahead","Haste, recklessness"],["Queen","Confidence, warmth, courage","Jealousy, insecurity"],["King","Vision, leadership, boldness","Impulsiveness, overbearing"]]],
+    ["Cups", "c", [["Ace","New love, compassion, overflowing feeling","Blocked emotions"],["Two","Partnership, connection","Imbalance, broken bond"],["Three","Friendship, celebration","Gossip, overindulgence"],["Four","Apathy, contemplation","New awareness, acceptance"],["Five","Loss, grief, regret","Moving on, forgiveness"],["Six","Nostalgia, childhood, kindness","Stuck in the past"],["Seven","Choices, daydreams, illusion","Clarity, decision"],["Eight","Walking away, seeking more","Fear of change, drifting"],["Nine","Contentment, wishes granted","Dissatisfaction, greed"],["Ten","Harmony, family, happiness","Disconnection at home"],["Page","Creative spark, intuitive message","Emotional immaturity"],["Knight","Romance, following the heart","Moodiness, unrealistic hopes"],["Queen","Compassion, intuition, calm","Insecurity, codependence"],["King","Emotional balance, diplomacy","Manipulation, moodiness"]]],
+    ["Swords", "s", [["Ace","Clarity, truth, breakthrough","Confusion, misinformation"],["Two","Stalemate, a hard choice","Indecision, overload"],["Three","Heartbreak, sorrow","Healing, release of pain"],["Four","Rest, recovery, retreat","Burnout, restlessness"],["Five","Conflict, winning at a cost","Reconciliation"],["Six","Transition, moving on","Resistance, unfinished business"],["Seven","Strategy, stealth, secrets","Coming clean"],["Eight","Feeling trapped, self-limiting","Freedom, new view"],["Nine","Anxiety, worry, sleepless nights","Hope, reaching out"],["Ten","Painful ending, rock bottom","Recovery, regeneration"],["Page","Curiosity, new ideas, vigilance","Gossip, hasty words"],["Knight","Ambition, fast thinking","Impulsive, unfocused"],["Queen","Clear boundaries, honesty","Coldness, bitterness"],["King","Truth, authority, intellect","Misuse of power"]]],
+    ["Pentacles", "p", [["Ace","New opportunity, prosperity","Missed chance, poor planning"],["Two","Juggling, adaptability","Overwhelm, disorganisation"],["Three","Teamwork, skill, learning","Lack of effort, disharmony"],["Four","Security, saving, control","Greed, holding too tight"],["Five","Hardship, feeling left out","Recovery, help arrives"],["Six","Generosity, giving and receiving","Strings attached, debt"],["Seven","Patience, long-term growth","Impatience, poor return"],["Eight","Craft, diligence, practice","Perfectionism, no focus"],["Nine","Independence, self-reliance, comfort","Overwork, hustling"],["Ten","Legacy, family, home","Family disputes, loss"],["Page","Study, manifestation, new goals","Procrastination"],["Knight","Routine, reliability, hard work","Boredom, stagnation"],["Queen","Nurture, home, practicality","Self-neglect, imbalance"],["King","Abundance, security, success","Stubbornness, materialism"]]],
+  ];
+  const MAJ_FILES = MAJOR.map((c, i) => "m" + String(i).padStart(2, "0"));
+  const DECK = MAJOR.map((c, i) => ({ n: c[0], up: c[2], rv: c[3], img: `tarot/${MAJ_FILES[i]}.jpg` }))
+    .concat(...SUITS.map(([suit, f, ranks]) => ranks.map(([r, up, rv], k) => ({ n: `${r} of ${suit}`, up, rv, img: `tarot/${f}${String(k + 1).padStart(2, "0")}.jpg` }))));
+  const tabs = {
+    tarot() {
+      stage.innerHTML = `<div class="cards3" id="cards"></div><div class="reading" id="tread"><p>Three cards: past, present, future. Think of your question, then draw.</p></div><div class="btns"><button class="btn" id="draw">Draw three cards</button><button class="btn ghost" id="saveR" hidden>Save reading</button></div>`;
+      const posn = ["Past", "Present", "Future"];
+      const back = () => posn.map(p => `<div><div class="tcard"><div class="face back"></div><div class="face front"></div></div><div class="pos">${p}</div></div>`).join("");
+      $("cards").innerHTML = back();
+      $("draw").onclick = () => {
+        const picks = pickN(DECK, 3).map(c => ({ c, rev: Math.random() < .3 }));
+        $("cards").innerHTML = picks.map(({ c, rev }, i) => `<div><button class="tcard${rev ? " rev" : ""}" data-card="${DECK.indexOf(c)}" data-rev="${rev ? 1 : 0}" aria-label="${esc(c.n)}"><div class="face back"></div><div class="face front"><img src="${c.img}" alt="" loading="eager"></div></button><div class="pos">${posn[i]}</div></div>`).join("");
+        const els = [...document.querySelectorAll(".tcard")];
+        els.forEach((el, i) => setTimeout(() => el.classList.add("flipped"), 250 + i * 450));
+        const txt = picks.map(({ c, rev }, i) => `${posn[i]}: ${c.n}${rev ? " (reversed)" : ""}. ${rev ? c.rv : c.up}.`);
+        setTimeout(() => { $("tread").innerHTML = txt.map(t => `<p>${esc(t)}</p>`).join("") + `<p class="hint" style="margin:6px 0 0">Tap a card to see it up close.</p>`; $("saveR").hidden = false; $("saveR").disabled = false; $("saveR").textContent = "Save reading"; }, 1500);
+        $("draw").textContent = "Draw again";
+        lastReading = { g: "Tarot", t: `Three-card spread, ${today()}`, b: txt.join("\n") + `\nMoon: ${pname}` };
+      };
+      $("saveR").onclick = saveReading;
+    },
+    runes() {
+      stage.innerHTML = `<div class="pouch" id="pouch"><p class="intro" style="margin:0">Hold your question in mind and cast three runes from the pouch.</p></div><div class="reading" id="rread"></div><div class="btns"><button class="btn" id="cast">Cast runes</button><button class="btn ghost" id="saveR" hidden>Save reading</button></div>`;
+      $("cast").onclick = () => {
+        const picks = pickN(RUNES, 3);
+        $("pouch").innerHTML = picks.map((r, i) => `<div class="stone" style="animation-delay:${i * .18}s" title="${r[1]}">${r[0]}</div>`).join("");
+        const txt = picks.map((r, i) => `${["Situation", "Challenge", "Outcome"][i]}: ${r[1]}. ${r[2]}.`);
+        $("rread").innerHTML = txt.map(t => `<p>${esc(t)}</p>`).join("");
+        $("rread").animate([{ opacity: 0 }, { opacity: 1 }], { duration: 900, delay: 500, fill: "backwards" });
+        $("cast").textContent = "Cast again"; $("saveR").hidden = false; $("saveR").disabled = false; $("saveR").textContent = "Save reading";
+        lastReading = { g: "Runes", t: `Three-rune cast, ${today()}`, b: txt.join("\n") + `\nMoon: ${pname}` };
+      };
+      $("saveR").onclick = saveReading;
+    },
+    scry() {
+      stage.innerHTML = `<div class="bowl"><canvas id="mist" width="300" height="300"></canvas><div class="vision" id="vision"></div></div><p class="hint" style="margin:0">Soften your gaze and let the smoke move. Tap “Gaze” and note what you see.</p><div class="btns"><button class="btn" id="gaze">Gaze</button><button class="btn ghost" id="saveR" hidden>Save reading</button></div>`;
+      const cv = $("mist"), ctx = cv.getContext("2d");
+      const ps = Array.from({ length: 70 }, () => ({ a: Math.random() * 7, r: Math.random() * 120, s: (Math.random() * .004 + .001) * (Math.random() < .5 ? -1 : 1), z: Math.random() * 40 + 20, h: [230, 280, 315][Math.floor(Math.random() * 3)] }));
+      cancelAnimationFrame(scryRAF);
+      (function loop() {
+        ctx.fillStyle = "rgba(7,6,12,.12)"; ctx.fillRect(0, 0, 300, 300);
+        for (const p of ps) { p.a += p.s; const x = 150 + Math.cos(p.a) * p.r, y = 150 + Math.sin(p.a * 1.3) * p.r * .8;
+          const g = ctx.createRadialGradient(x, y, 0, x, y, p.z); g.addColorStop(0, `hsla(${p.h},60%,70%,.05)`); g.addColorStop(1, "transparent"); ctx.fillStyle = g; ctx.fillRect(x - p.z, y - p.z, p.z * 2, p.z * 2); }
+        scryRAF = requestAnimationFrame(loop);
+      })();
+      $("gaze").onclick = () => {
+        const v = $("vision"), seen = VISIONS[Math.floor(Math.random() * VISIONS.length)];
+        v.classList.remove("show"); ps.forEach(p => p.s *= 3);
+        setTimeout(() => { v.textContent = seen; v.classList.add("show"); ps.forEach(p => p.s /= 3); $("saveR").hidden = false; $("saveR").disabled = false; $("saveR").textContent = "Save reading"; }, 1400);
+        lastReading = { g: "Scrying", t: `Scrying session, ${today()}`, b: `Prompt from the bowl: ${seen}\n\nWhat I saw / felt:\n\nMoon: ${pname}` };
+      };
+      $("saveR").onclick = saveReading;
+    },
+    board() {
+      const L = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+      const pos = {};
+      const glyphs = L.map((ch, i) => {
+        const row = i < 13 ? 0 : 1, k = row ? i - 13 : i, t = k / 12;
+        const x = 10 + t * 80, y = (row ? 52 : 36) + Math.pow(t - .5, 2) * 4 * 12 * (row ? .6 : 1);
+        pos[ch] = [x, y]; return `<span class="glyph" style="left:${x}%;top:${y}%">${ch}</span>`;
+      }).join("");
+      pos.YES = [16, 13]; pos.NO = [84, 13]; pos.MAYBE = [50, 85]; pos.HOME = [50, 18];
+      stage.innerHTML = `<div class="board" id="brd">
+          <span class="glyph corner" style="left:16%;top:13%">YES</span><span class="glyph corner" style="left:84%;top:13%">NO</span>
+          <span class="glyph" style="left:50%;top:13%;font-size:1.4rem">☾ ☉ ☽</span>${glyphs}
+          <span class="glyph" style="left:50%;top:72%;letter-spacing:.3em">1 2 3 4 5 6 7 8 9 0</span>
+          <span class="glyph corner" style="left:50%;top:87%">PERHAPS</span>
+          <div class="planchette" id="pl" style="left:50%;top:18%"><svg viewBox="0 0 54 62"><path d="M27 2 C47 10 52 40 44 58 L10 58 C2 40 7 10 27 2Z" fill="#f2e6cc" stroke="#6b4a2a" stroke-width="2"/><circle cx="27" cy="26" r="9" fill="rgba(120,90,60,.15)" stroke="#6b4a2a" stroke-width="2"/></svg></div>
+        </div>
+        <form class="ask" id="askF"><input id="q" placeholder="Ask a yes or no question" aria-label="Your question"><button class="btn" type="submit">Ask</button></form>
+        <div class="reading" id="bread"><p>For fun and reflection. Ask a question and watch the planchette move.</p></div>
+        <div class="btns"><button class="btn ghost" id="saveR" hidden>Save reading</button></div>`;
+      const pl = $("pl"), move = ([x, y]) => { pl.style.left = x + "%"; pl.style.top = y + "%"; };
+      let busy = false;
+      $("askF").onsubmit = e => {
+        e.preventDefault(); if (busy) return; busy = true;
+        const q = $("q").value.trim() || "Will today go well?";
+        const ans = ["YES", "NO", "MAYBE"][Math.floor(Math.random() * 3)];
+        const path = [...pickN(L, 3).map(c => pos[c]), pos[ans]];
+        $("bread").innerHTML = `<p>The planchette stirs…</p>`;
+        path.forEach((p, i) => setTimeout(() => move(p), i * 1100));
+        setTimeout(() => {
+          const word = ans === "MAYBE" ? "Perhaps" : ans === "YES" ? "Yes" : "No";
+          $("bread").innerHTML = `<h4>${word}</h4><p>“${esc(q)}”</p>`;
+          lastReading = { g: "Spirit Board", t: `Spirit board, ${today()}`, b: `Question: ${q}\nAnswer: ${word}\nMoon: ${pname}` };
+          $("saveR").hidden = false; $("saveR").disabled = false; $("saveR").textContent = "Save reading";
+          setTimeout(() => { move(pos.HOME); busy = false; }, 2200);
+        }, path.length * 1100);
+      };
+      $("saveR").onclick = saveReading;
+    },
+  };
+  $("tabs").addEventListener("click", e => {
+    const b = e.target.closest("[data-tab]"); if (!b) return;
+    document.querySelectorAll(".tab").forEach(x => x.setAttribute("aria-selected", x === b));
+    if (b.dataset.tab !== "scry") cancelAnimationFrame(scryRAF);
+    lastReading = null; tabs[b.dataset.tab]();
+    stage.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 350, easing: "ease-out" });
+  });
+
+  // ---------- Astrology ----------
+  const VS = "\uFE0E";
+  const SIGNS = [
+    ["Aries","♈","Mar 21 – Apr 19","Fire","Cardinal","Mars","Bold, direct, a starter of things"],
+    ["Taurus","♉","Apr 20 – May 20","Earth","Fixed","Venus","Steady, sensual, loyal, rooted"],
+    ["Gemini","♊","May 21 – Jun 20","Air","Mutable","Mercury","Curious, quick, talkative, playful"],
+    ["Cancer","♋","Jun 21 – Jul 22","Water","Cardinal","Moon","Nurturing, protective, home-loving"],
+    ["Leo","♌","Jul 23 – Aug 22","Fire","Fixed","Sun","Warm, generous, creative, proud"],
+    ["Virgo","♍","Aug 23 – Sep 22","Earth","Mutable","Mercury","Careful, helpful, practical healer"],
+    ["Libra","♎","Sep 23 – Oct 22","Air","Cardinal","Venus","Fair, charming, seeks harmony"],
+    ["Scorpio","♏","Oct 23 – Nov 21","Water","Fixed","Pluto & Mars","Intense, private, transforming"],
+    ["Sagittarius","♐","Nov 22 – Dec 21","Fire","Mutable","Jupiter","Free, honest, wandering, hopeful"],
+    ["Capricorn","♑","Dec 22 – Jan 19","Earth","Cardinal","Saturn","Patient, ambitious, dependable"],
+    ["Aquarius","♒","Jan 20 – Feb 18","Air","Fixed","Uranus & Saturn","Original, idealistic, independent"],
+    ["Pisces","♓","Feb 19 – Mar 20","Water","Mutable","Neptune & Jupiter","Dreamy, empathic, intuitive"],
+  ];
+  const ROM12 = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
+  const rad = d => d * Math.PI / 180, norm = d => ((d % 360) + 360) % 360;
+  const dJ = Date.now() / 864e5 - 10957.5; // days since J2000
+  const sunLon = (() => { const L = 280.460 + 0.9856474 * dJ, g = rad(357.528 + 0.9856003 * dJ); return norm(L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)); })();
+  const moonLon = (() => { const L = 218.316 + 13.176396 * dJ, M = rad(134.963 + 13.064993 * dJ); return norm(L + 6.289 * Math.sin(M)); })();
+  const signOf = lon => SIGNS[Math.floor(lon / 30)];
+  const pt = (r, lon) => { const t = rad(180 + lon); return [r * Math.cos(t), -r * Math.sin(t)]; };
+  (function drawWheel() {
+    let h = `<defs>
+      <filter id="marble"><feTurbulence type="fractalNoise" baseFrequency=".018 .05" numOctaves="3" seed="7"/><feColorMatrix values="0 0 0 0 .55  0 0 0 0 .57  0 0 0 0 .62  0 0 0 -1.6 1.05"/><feComposite in2="SourceGraphic" operator="in"/><feBlend in="SourceGraphic" mode="multiply"/></filter>
+      <radialGradient id="lap" cx="50%" cy="45%"><stop offset="0" stop-color="#2A4BB0"/><stop offset=".7" stop-color="#1B2F7A"/><stop offset="1" stop-color="#0B1440"/></radialGradient>
+      <radialGradient id="pearl" cx="35%" cy="30%"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#C9CED6"/><stop offset="1" stop-color="#7d8594"/></radialGradient>
+    </defs>`;
+    h += `<circle r="156" fill="#E6E8EC" filter="url(#marble)"/><circle r="156" fill="none" stroke="#9AA1AE" stroke-width="2"/>`;
+    for (let i = 0; i < 12; i++) {
+      const [x1, y1] = pt(126, i * 30), [x2, y2] = pt(156, i * 30);
+      h += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#9AA1AE" stroke-width="1"/>`;
+      const [tx, ty] = pt(141, i * 30 + 15);
+      h += `<text x="${tx}" y="${ty}" fill="#5B616D" font-family="IM Fell English, Georgia, serif" font-size="11" text-anchor="middle" dominant-baseline="central" transform="rotate(${-(i * 30 + 15) + 90 + 180} ${tx} ${ty})">${ROM12[i]}</text>`;
+    }
+    h += `<circle r="126" fill="#0B1440" stroke="#C9CED6" stroke-width="1.5"/>`;
+    SIGNS.forEach((sg, i) => {
+      const [x1, y1] = pt(92, i * 30), [x2, y2] = pt(126, i * 30), [gx, gy] = pt(109, i * 30 + 15);
+      h += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#C9CED6" stroke-opacity=".6"/>`;
+      h += `<g class="sg" data-sign="${i}" role="button" aria-label="${sg[0]}"><circle cx="${gx}" cy="${gy}" r="15" fill="transparent"/><text x="${gx}" y="${gy}" fill="#C9CED6" font-size="19" text-anchor="middle" dominant-baseline="central">${sg[1]}${VS}</text></g>`;
+    });
+    h += `<circle r="92" fill="url(#lap)" stroke="#C9CED6" stroke-width="1.5"/><g class="spin">`;
+    let seedN = 11; const rnd = () => (seedN = (seedN * 9301 + 49297) % 233280) / 233280;
+    for (let i = 0; i < 46; i++) { const a = rnd() * 360, r = 12 + rnd() * 76, [x, y] = pt(r, a), sz = 1.2 + rnd() * 2.2;
+      h += `<path d="M${x} ${y - sz * 1.6}L${x + sz * .5} ${y - sz * .5}L${x + sz * 1.6} ${y}L${x + sz * .5} ${y + sz * .5}L${x} ${y + sz * 1.6}L${x - sz * .5} ${y + sz * .5}L${x - sz * 1.6} ${y}L${x - sz * .5} ${y - sz * .5}Z" fill="#C9CED6" opacity="${.5 + rnd() * .5}"/>`; }
+    h += `</g><circle r="62" fill="none" stroke="#C9CED6" stroke-opacity=".35"/><circle r="34" fill="none" stroke="#C9CED6" stroke-opacity=".25"/>`;
+    const [sx, sy] = pt(74, sunLon), [mx, my] = pt(48, moonLon);
+    h += `<line x1="0" y1="0" x2="${sx}" y2="${sy}" stroke="#C9CED6" stroke-opacity=".5" stroke-dasharray="2 3"/>`;
+    h += `<circle cx="${sx}" cy="${sy}" r="9" fill="url(#pearl)"/><text x="${sx}" y="${sy}" font-size="10" fill="#0B1440" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans Symbols">☉${VS}</text>`;
+    h += `<circle cx="${mx}" cy="${my}" r="7.5" fill="url(#pearl)"/><text x="${mx}" y="${my}" font-size="9" fill="#0B1440" text-anchor="middle" dominant-baseline="central" font-family="Noto Sans Symbols">☽${VS}</text>`;
+    h += `<circle r="8" fill="url(#pearl)"/>`;
+    $("wheel").innerHTML = h;
+  })();
+  // painted clock: Sun/Moon markers + tappable signs (Aries at top, signs run clockwise)
+  (() => {
+    const at = (r, deg) => { const a = (deg - 90) * Math.PI / 180; return `left:${(50 + Math.cos(a) * r).toFixed(2)}%;top:${(50 + Math.sin(a) * r).toFixed(2)}%`; };
+    let h = SIGNS.map((sg, i) => `<button class="clock-sign" data-sign="${i}" aria-label="${sg[0]}" style="${at(41, i * 30)}"></button>`).join("");
+    h += `<span class="cm sun" style="${at(26, sunLon - 15)}" title="Sun">☉${VS}</span><span class="cm moon" style="${at(19, moonLon - 15)}" title="Moon">☽${VS}</span>`;
+    $("clockMarks").innerHTML = h;
+  })();
+  const sunS = signOf(sunLon), moonS = signOf(moonLon);
+  $("astroToday").innerHTML = [["Sun in", sunS, sunLon], ["Moon in", moonS, moonLon]].map(([k, sg, lon]) =>
+    `<button class="tcell" data-sign="${SIGNS.indexOf(sg)}"><div class="k">${k}</div><div class="g">${sg[1]}${VS}</div><div class="v">${sg[0]} ${Math.floor(lon % 30)}°</div></button>`).join("")
+    + `<div class="tcell"><div class="k">Moon phase</div><div class="g">${pname === "Full Moon" ? "○" : pname === "New Moon" ? "●" : phase < .5 ? "☽" : "☾"}${VS}</div><div class="v">${pname}</div></div>`;
+  const CKEY = "hearthbook.chart.v1"; let chart = {};
+  try { chart = JSON.parse(localStorage.getItem(CKEY) || "{}") || {}; } catch (e) {}
+  $("myChart").innerHTML = ["Sun", "Moon", "Rising"].map(k => `<label for="ch${k}">${k}<select id="ch${k}" data-chart="${k}"><option value="">Choose…</option>${SIGNS.map(sg => `<option${chart[k] === sg[0] ? " selected" : ""}>${sg[0]}</option>`).join("")}</select></label>`).join("");
+  $("myChart").addEventListener("change", e => { const k = e.target.dataset.chart; if (!k) return; chart[k] = e.target.value; try { localStorage.setItem(CKEY, JSON.stringify(chart)); } catch (err) {} });
+  $("signGrid").innerHTML = SIGNS.map((sg, i) => `<button class="sign" data-sign="${i}"><span>${sg[1]}${VS}</span><span>${sg[0]}</span></button>`).join("");
+  document.addEventListener("click", e => {
+    const t = e.target.closest("[data-sign]"); if (!t) return;
+    const sg = SIGNS[+t.dataset.sign], mine = Object.entries(chart).filter(([, v]) => v === sg[0]).map(([k]) => k);
+    openSheet(`<span class="chip">${sg[3]} sign</span><h2><span style="font-family:'Noto Sans Symbols',serif">${sg[1]}${VS}</span> ${sg[0]}</h2>
+      <p style="margin:4px 0 0;color:var(--vellum-dim)">${sg[6]}</p>
+      <dl class="facts"><dt>Dates</dt><dd>${sg[2]}</dd><dt>Element</dt><dd>${sg[3]}</dd><dt>Modality</dt><dd>${sg[4]}</dd><dt>Ruler</dt><dd>${sg[5]}</dd>
+      ${sg === sunS ? "<dt>Today</dt><dd>The Sun is here</dd>" : ""}${sg === moonS ? "<dt>Today</dt><dd>The Moon is here</dd>" : ""}${mine.length ? `<dt>Your chart</dt><dd>Your ${mine.join(" and ")}</dd>` : ""}</dl>
+      <div class="bar"><span></span><button class="btn ghost" data-close>Close</button></div>`);
+  });
+
+  // ---------- Painted stand-in scenes ----------
+  (function () {
+    const rng = seed => () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    const pick = (r, a) => a[Math.floor(r() * a.length)];
+    function finish(ctx, w, h, r, vig) {
+      const g = ctx.createRadialGradient(w / 2, h * .45, Math.min(w, h) * .25, w / 2, h * .5, Math.max(w, h) * .75);
+      g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, `rgba(0,0,0,${vig})`); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < w * h / 90; i++) { ctx.fillStyle = r() < .5 ? "rgba(255,240,220,.025)" : "rgba(0,0,0,.05)"; ctx.fillRect(r() * w, r() * h, 1.5, 1.5); }
+    }
+    const P = {
+      bookcase(ctx, w, h, r) {
+        ctx.fillStyle = "#1e140d"; ctx.fillRect(0, 0, w, h);
+        const rowH = 92, bottom = h * .74;
+        for (let y = 6; y + rowH < bottom; y += rowH) {
+          const back = ctx.createLinearGradient(0, y, 0, y + rowH); back.addColorStop(0, "#160e09"); back.addColorStop(1, "#2B1D14"); ctx.fillStyle = back; ctx.fillRect(0, y, w, rowH);
+          let x = 14;
+          while (x < w - 18) {
+            if (r() < .08) { x += 14 + r() * 26; continue; }
+            const bw = 8 + r() * 13, bh = rowH * (.5 + r() * .32), col = pick(r, ["#4A2F23", "#5C3B2A", "#8B5E3C", "#3F4F38", "#566B4C", "#6E8A62", "#5a2a22", "#2f3a2a", "#704A30", "#b8ab92"]);
+            const lean = r() < .07 ? (r() - .5) * .25 : 0, base = y + rowH - 13;
+            ctx.save(); ctx.translate(x + bw / 2, base); ctx.rotate(lean);
+            const sg = ctx.createLinearGradient(-bw / 2, 0, bw / 2, 0); sg.addColorStop(0, "rgba(0,0,0,.35)"); sg.addColorStop(.35, "rgba(255,255,255,.08)"); sg.addColorStop(1, "rgba(0,0,0,.4)");
+            ctx.fillStyle = col; ctx.fillRect(-bw / 2, -bh, bw, bh); ctx.fillStyle = sg; ctx.fillRect(-bw / 2, -bh, bw, bh);
+            ctx.fillStyle = "rgba(237,228,211,.35)"; ctx.fillRect(-bw / 2 + 1, -bh + 5, bw - 2, 1.5); ctx.fillRect(-bw / 2 + 1, -9, bw - 2, 1.5);
+            ctx.restore(); x += bw + .8 + (lean ? 4 : 0);
+          }
+          const pl = ctx.createLinearGradient(0, y + rowH - 13, 0, y + rowH); pl.addColorStop(0, "#8B5E3C"); pl.addColorStop(.25, "#4A2F23"); pl.addColorStop(1, "#24160e");
+          ctx.fillStyle = pl; ctx.fillRect(0, y + rowH - 13, w, 13);
+        }
+        ctx.fillStyle = "#24160e"; ctx.fillRect(0, 0, 10, bottom); ctx.fillRect(w - 10, 0, 10, bottom);
+        const fl = ctx.createLinearGradient(0, bottom, 0, h); fl.addColorStop(0, "#3a2619"); fl.addColorStop(1, "#140c07"); ctx.fillStyle = fl; ctx.fillRect(0, bottom, w, h - bottom);
+        for (let i = 0; i < 9; i++) { ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.moveTo(0, bottom + i * (h - bottom) / 9); ctx.lineTo(w, bottom + i * (h - bottom) / 9 + 6); ctx.stroke(); }
+        const stand = (cx, label) => {
+          const ty = h * .8;
+          ctx.fillStyle = "#3a2418"; ctx.fillRect(cx - 4, ty, 8, h - ty); ctx.fillRect(cx - 26, h - 10, 52, 8);
+          ctx.save(); ctx.translate(cx, ty); ctx.rotate(-.12);
+          ctx.fillStyle = "#4A2F23"; ctx.fillRect(-46, -8, 92, 12);
+          ctx.fillStyle = label === "g" ? "#3F4F38" : "#5a2a22"; ctx.fillRect(-44, -30, 88, 24);
+          ctx.fillStyle = "#EDE4D3"; ctx.beginPath(); ctx.moveTo(-41, -27); ctx.quadraticCurveTo(-20, -36, 0, -28); ctx.lineTo(0, -8); ctx.quadraticCurveTo(-20, -15, -41, -8); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(41, -27); ctx.quadraticCurveTo(20, -36, 0, -28); ctx.lineTo(0, -8); ctx.quadraticCurveTo(20, -15, 41, -8); ctx.fill();
+          ctx.strokeStyle = "rgba(90,70,54,.45)"; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.moveTo(-36, -24 + k * 4); ctx.lineTo(-6, -24 + k * 4); ctx.moveTo(6, -24 + k * 4); ctx.lineTo(36, -24 + k * 4); ctx.stroke(); }
+          ctx.restore();
+        };
+        stand(w * .2, "b"); stand(w * .8, "g");
+        ctx.globalCompositeOperation = "screen";
+        const lg = ctx.createRadialGradient(w * .5, h * .02, 0, w * .5, h * .02, h * .7); lg.addColorStop(0, "rgba(255,196,120,.32)"); lg.addColorStop(1, "transparent"); ctx.fillStyle = lg; ctx.fillRect(0, 0, w, h);
+        ctx.globalCompositeOperation = "source-over";
+        finish(ctx, w, h, r, .7);
+      },
+      crystal(ctx, w, h, r) {
+        const bg = ctx.createRadialGradient(w / 2, h * .32, 0, w / 2, h * .4, h * .8); bg.addColorStop(0, "#3a2f2f"); bg.addColorStop(1, "#110d0d"); ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 60; i++) { ctx.fillStyle = `rgba(255,227,179,${r() * .5})`; ctx.beginPath(); ctx.arc(w * (.25 + r() * .5), r() * h * .55, r() * 1.2 + .3, 0, 7); ctx.fill(); }
+        const drape = (side) => {
+          const x0 = side < 0 ? 0 : w, dir = side < 0 ? 1 : -1, width = w * .3;
+          for (let i = 0; i < 9; i++) {
+            const fx = x0 + dir * (i / 9) * width, fw = width / 9 + 2;
+            const g = ctx.createLinearGradient(fx, 0, fx + dir * fw, 0); g.addColorStop(0, "#5a1426"); g.addColorStop(.5, i % 2 ? "#7a2238" : "#3a0c18"); g.addColorStop(1, "#2a0811");
+            ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(fx, 0); ctx.lineTo(fx + dir * fw, 0);
+            ctx.quadraticCurveTo(fx + dir * fw * (1 - i / 9 * 3), h * .55, x0 + dir * fw * .4, h * .62); ctx.lineTo(x0 + dir * (fw * .4 - fw), h * .62);
+            ctx.quadraticCurveTo(fx - dir * fw * (i / 3), h * .55, fx, 0); ctx.fill();
+            ctx.fillStyle = g; ctx.fillRect(Math.min(x0, x0 + dir * width * .35), h * .62, width * .35, h * .38);
+          }
+          ctx.fillStyle = "#CA2851"; ctx.fillRect(Math.min(x0, x0 + dir * width * .42), h * .6, width * .42, 6);
+        };
+        drape(-1); drape(1);
+        const ty = h * .84, cl = ctx.createLinearGradient(0, ty, 0, h); cl.addColorStop(0, "#7a2238"); cl.addColorStop(1, "#2a0811");
+        ctx.fillStyle = cl; ctx.beginPath(); ctx.ellipse(w / 2, ty, w * .55, h * .05, 0, 0, 7); ctx.fill(); ctx.fillRect(-w * .05, ty, w * 1.1, h - ty);
+        ctx.strokeStyle = "rgba(255,177,115,.5)"; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.ellipse(w / 2, ty + 2, w * .55, h * .05, 0, 0, Math.PI); ctx.stroke(); ctx.setLineDash([]);
+        [[.14, .8], [.86, .8]].forEach(([cx, cy]) => { ctx.fillStyle = "#efe2c8"; ctx.fillRect(w * cx - 5, h * cy - 30, 10, 34); ctx.fillStyle = "#FFB173"; ctx.beginPath(); ctx.ellipse(w * cx, h * cy - 36, 3, 7, 0, 0, 7); ctx.fill(); });
+        finish(ctx, w, h, r, .65);
+      },
+      astrology(ctx, w, h, r) {
+        ctx.fillStyle = "#0e1428"; ctx.fillRect(0, 0, w, h);
+        for (let y = 0, row = 0; y < h; y += 30, row++) for (let x = -(row % 2) * 28; x < w; x += 56) {
+          const v = 18 + r() * 14; ctx.fillStyle = `rgb(${v},${v + 6},${v + 22})`; ctx.fillRect(x + 1.5, y + 1.5, 53, 27);
+        }
+        const cx = w / 2, cy = h * .24, R = w * .6;
+        ctx.fillStyle = "#0a0f20"; ctx.beginPath(); ctx.arc(cx, cy, R * 1.14, 0, 7); ctx.fill();
+        const mg = ctx.createRadialGradient(cx, cy, R, cx, cy, R * 1.12); mg.addColorStop(0, "#8f96a4"); mg.addColorStop(.5, "#c9ced6"); mg.addColorStop(1, "#6b7280");
+        ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(cx, cy, R * 1.12, 0, 7); ctx.arc(cx, cy, R, 0, 7, true); ctx.fill();
+        const lg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R); lg.addColorStop(0, "#6f8cf0"); lg.addColorStop(.45, "#2A4BB0"); lg.addColorStop(1, "#1B2F7A");
+        ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+        const rom = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
+        ctx.fillStyle = "#3d4352"; ctx.font = `${Math.round(R * .07)}px "IM Fell English", Georgia, serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        rom.forEach((t, i) => { const a = -Math.PI / 2 - i * Math.PI / 6; ctx.save(); ctx.translate(cx + Math.cos(a) * R * 1.06, cy + Math.sin(a) * R * 1.06); ctx.rotate(a + Math.PI / 2); ctx.scale(-1, 1); ctx.fillText(t, 0, 0); ctx.restore(); });
+        ctx.strokeStyle = "rgba(10,15,32,.85)"; ctx.lineWidth = 3;
+        for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * R * .2, cy + Math.sin(a) * R * .2); ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.stroke(); }
+        ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + R * .75, cy - R * .32); ctx.stroke();
+        ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx - R * .25, cy + R * .45); ctx.stroke();
+        ctx.fillStyle = "#3a2618"; [[-.1, .12, .1], [1.1, .12, -.1]].forEach(([x, y, a]) => { ctx.save(); ctx.translate(w * x, h * y); ctx.rotate(a * 6); ctx.fillRect(-w * .5, -10, w, 20); ctx.restore(); });
+        const dy = h * .88, dg = ctx.createLinearGradient(0, dy, 0, h); dg.addColorStop(0, "#5a3b28"); dg.addColorStop(.1, "#3a2618"); dg.addColorStop(1, "#1a110b");
+        ctx.fillStyle = dg; ctx.fillRect(0, dy, w, h - dy);
+        ctx.save(); ctx.translate(w * .38, dy - 4); ctx.rotate(-.06); ctx.fillStyle = "#d9d2c0"; ctx.fillRect(-60, -6, 120, 10);
+        ctx.strokeStyle = "rgba(27,47,122,.6)"; ctx.beginPath(); ctx.arc(0, -1, 4, 0, 7); ctx.stroke(); ctx.restore();
+        [["#1B2F7A", 16], ["#4A2F23", 12], ["#566B4C", 14]].reduce((y, [c, t]) => { ctx.fillStyle = c; ctx.fillRect(w * .1, y - t, 70, t); return y - t; }, dy);
+        ctx.fillStyle = "#2a2a30"; ctx.fillRect(w * .82 - 3, dy - 50, 6, 50); ctx.fillStyle = "#3d4352"; ctx.beginPath(); ctx.moveTo(w * .82 - 22, dy - 50); ctx.lineTo(w * .82 + 22, dy - 50); ctx.lineTo(w * .82 + 12, dy - 66); ctx.lineTo(w * .82 - 12, dy - 66); ctx.fill();
+        finish(ctx, w, h, r, .6);
+      },
+    };
+    function paintAll() {
+      document.querySelectorAll("canvas.paint").forEach(cv => {
+        const w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
+        const d = Math.min(devicePixelRatio || 1, 2), off = document.createElement("canvas"); off.width = w * d; off.height = h * d;
+        const o = off.getContext("2d"); o.scale(d, d); P[cv.dataset.paint](o, w, h, rng(7));
+        cv.width = w * d; cv.height = h * d; const ctx = cv.getContext("2d");
+        ctx.filter = "blur(" + (0.8 * d) + "px)"; ctx.drawImage(off, 0, 0); ctx.filter = "none";
+      });
+    }
+    let t; addEventListener("resize", () => { clearTimeout(t); t = setTimeout(paintAll, 200); });
+    (document.fonts ? document.fonts.ready : Promise.resolve()).then(paintAll); paintAll();
+    // gear outline shared by the Astrology gears
+    const teeth = 14, pts = []; for (let i = 0; i < teeth * 4; i++) { const a = i / (teeth * 4) * Math.PI * 2, rr = (i % 4 < 2) ? 48 : 40; pts.push(`${(Math.cos(a) * rr).toFixed(1)},${(Math.sin(a) * rr).toFixed(1)}`); }
+    if ($("gearPath")) { $("gearPath").setAttribute("d", "M" + pts.join("L") + "Z M14,0 A14,14 0 1,0 -14,0 A14,14 0 1,0 14,0Z"); $("gearPath").setAttribute("fill-rule", "evenodd"); }
+    // dust motes in the library light
+    document.querySelectorAll("canvas.motes-lite").forEach(cv => {
+      const ctx = cv.getContext("2d"), still = matchMedia("(prefers-reduced-motion: reduce)").matches, room = cv.closest(".room");
+      let ms = [];
+      (function tick(tm) {
+        requestAnimationFrame(tick);
+        if (still || rooms[current] !== room) return;
+        const w = cv.clientWidth, h = cv.clientHeight;
+        if (cv.width !== w) { cv.width = w; cv.height = h; ms = Array.from({ length: 30 }, () => ({ x: Math.random() * w, y: Math.random() * h * .7, r: .5 + Math.random() * 1.2, p: Math.random() * 6 })); }
+        ctx.clearRect(0, 0, w, h);
+        for (const m of ms) { m.y -= .08; m.x += Math.sin(tm / 2600 + m.p) * .1; if (m.y < 0) m.y = h * .7;
+          ctx.globalAlpha = .3 + .3 * Math.sin(tm / 1000 + m.p); ctx.fillStyle = cv.dataset.motes; ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, 7); ctx.fill(); }
+        ctx.globalAlpha = 1;
+      })(0);
+    });
+  })();
+
+  // ---------- Altar ----------
+  (function () {
+    const now = new Date();
+    $("altarDate").textContent = now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+    $("altarMoon").textContent = pname;
+    $("altarEsbat").textContent = toFull < toNew ? `full moon ${fmt(toFull)}` : `new moon ${fmt(toNew)}`;
+    const y = now.getFullYear(), day = 864e5;
+    const sabbats = [["Imbolc", 1, 1], ["Ostara", 2, 20], ["Beltane", 4, 1], ["Litha", 5, 21], ["Lughnasadh", 7, 1], ["Mabon", 8, 22], ["Samhain", 9, 31], ["Yule", 11, 21]]
+      .flatMap(([n, m, d]) => [[n, new Date(y, m, d)], [n, new Date(y + 1, m, d)]]).filter(([, d]) => d >= new Date(y, now.getMonth(), now.getDate())).sort((a, b) => a[1] - b[1]);
+    const [sn, sd] = sabbats[0], days = Math.round((sd - new Date(y, now.getMonth(), now.getDate())) / day);
+    const seedN = y * 400 + now.getMonth() * 32 + now.getDate();
+    const affs = bySec("crystal"); $("altarAff").textContent = affs.length ? `“${affs[seedN % affs.length].t}”` : "";
+    const KEY_A = "hearthbook.altar.v1", today = now.toDateString();
+    let st = {}; try { st = JSON.parse(localStorage.getItem(KEY_A) || "{}") || {}; } catch (e) {}
+    function show(animate) {
+      const box = $("altarRune");
+      if (st.date === today && RUNES[st.rune]) {
+        const r = RUNES[st.rune];
+        box.innerHTML = `<div class="stone"${animate ? "" : ' style="animation:none"'}>${r[0]}</div><div><h4>Today's rune: ${r[1]}</h4><p>${r[2]}</p></div>`;
+      } else {
+        box.innerHTML = `<button class="btn" id="pullRune">Pull today's rune</button><p style="margin:0;font-size:.88rem;color:#e2c9a6">One rune to guide your day.</p>`;
+        $("pullRune").onclick = () => {
+          st = { date: today, rune: Math.floor(Math.random() * RUNES.length) };
+          try { localStorage.setItem(KEY_A, JSON.stringify(st)); } catch (e) {}
+          const g = $("othalaGlow"); g.classList.remove("lit"); void g.offsetWidth; g.classList.add("lit");
+          show(true);
+        };
+      }
+    }
+    show(false);
+  })();
+
+
+  // ---------- Altar: Wheel of the Year season ----------
+  (() => {
+    // Yule first; month is 0-based. fx = seasonal particles on the altar.
+    const W = [
+      { n: "Yule", m: 11, d: 21, c: "#B3262E", fx: "snow", line: "The longest night, then the sun returns. Rest and keep the hearth lit.",
+        themes: "Rebirth of the sun, hope in the dark, rest, family and the warmth of home.", colours: ["#B3262E", "#2F5D3A", "#C9973E", "#F2EEE6"],
+        herbs: "Holly, ivy, pine, cinnamon, clove, bay", crystals: "Garnet, bloodstone, clear quartz", foods: "Mulled cider, gingerbread, roast nuts, oranges",
+        hearth: ["Keep a candle or Yule log burning through the longest night", "Begin your Omen Days: pull the first of your 12 runes", "Hang evergreens over the hearth for protection"],
+        altar: "Evergreens, pine cones, red and gold candles, oranges studded with cloves." },
+      { n: "Imbolc", m: 1, d: 1, c: "#D9C27A", fx: "motes", line: "First stirrings of spring. Tend the hearth fire and clear out winter.",
+        themes: "Brigid, the hearth flame, purification, first light and new beginnings.", colours: ["#F2EEE6", "#E9D98A", "#A9C49A"],
+        herbs: "Snowdrop, bay, chamomile, angelica, rosemary", crystals: "Amethyst, moonstone, clear quartz", foods: "Bread, butter, milk, seeds, honey cakes",
+        hearth: ["Sweep the house from back to front and out the door", "Light every candle in the home for a moment", "Hang a Brigid's cross over the door"],
+        altar: "White candles, snowdrops, a bowl of milk or water, a Brigid's cross." },
+      { n: "Ostara", m: 2, d: 20, c: "#8FB37A", fx: "petals", line: "Day and night in balance. Plant seeds, open the windows.",
+        themes: "Balance, new growth, fertility and fresh starts.", colours: ["#A9C49A", "#F3E08A", "#E8B4C0"],
+        herbs: "Daffodil, violet, lemon balm, primrose", crystals: "Rose quartz, aquamarine, green aventurine", foods: "Eggs, fresh greens, seed cakes, honey",
+        hearth: ["Plant seeds in pots on the windowsill", "Draw sigils on eggs for what you want to grow", "Open every window and air the house"],
+        altar: "Eggs, spring flowers, seeds, pastel candles." },
+      { n: "Beltane", m: 4, d: 1, c: "#D0473A", fx: "petals", line: "Fire and blossom. Bless the home's fires and celebrate.",
+        themes: "Fire, passion, fertility, blossoming and joy.", colours: ["#D0473A", "#3E7A45", "#F2EEE6"],
+        herbs: "Hawthorn, rose, mint, woodruff, birch", crystals: "Carnelian, emerald, garnet", foods: "Honey, oatcakes, strawberries, May wine",
+        hearth: ["Gather blossom for the front door", "Bless the hearth and every candle in the house", "Make a wish over a candle flame"],
+        altar: "Hawthorn blossom, ribbons, red and white candles, flowers." },
+      { n: "Litha", m: 5, d: 21, c: "#E3A72F", fx: "sun", line: "The sun at its height. Gather strength and dry herbs for the year.",
+        themes: "The sun's full power, abundance, strength and protection.", colours: ["#E3A72F", "#F3D35A", "#3D6FB0"],
+        herbs: "St John's wort, lavender, chamomile, elderflower", crystals: "Citrine, sunstone, tiger's eye", foods: "Summer fruit, honey, fresh bread, elderflower cordial",
+        hearth: ["Make sun water on the windowsill", "Cut and dry herbs for the year ahead", "Make a protection charm with St John's wort"],
+        altar: "Sunflowers, gold candles, citrus, herbs." },
+      { n: "Lughnasadh", m: 7, d: 1, c: "#C9973E", fx: "sun", line: "The first harvest. Bake, share and give thanks for your work.",
+        themes: "First harvest, grain, gratitude, skill and sacrifice.", colours: ["#C9973E", "#C8642A", "#6B4A2B"],
+        herbs: "Wheat, sunflower, basil, meadowsweet", crystals: "Peridot, citrine, aventurine", foods: "Fresh bread, corn, berries, cider",
+        hearth: ["Bake a loaf and offer the first slice", "Make a corn dolly to keep until spring", "Write down what you're grateful for this year"],
+        altar: "Wheat, bread, sunflowers, orange and gold candles." },
+      { n: "Mabon", m: 8, d: 22, c: "#A65A3A", fx: "leaves", line: "The second harvest. Find balance and ready the home for winter.",
+        themes: "Balance, gratitude, the second harvest and preparing for the dark.", colours: ["#8E2F24", "#C8642A", "#6B4A2B", "#C9973E"],
+        herbs: "Apple, sage, rosemary, oak, cinnamon", crystals: "Amber, yellow agate, sapphire", foods: "Apples, squash, cider, nuts, blackberries",
+        hearth: ["Simmer apple and cinnamon on the stove", "Stock the pantry and ward the house for winter", "Make a gratitude list"],
+        altar: "Apples, acorns, autumn leaves, deep red and orange candles." },
+      { n: "Samhain", m: 9, d: 31, c: "#7A3FA0", fx: "leaves", line: "The veil is thin. Rest, remember and protect the home.",
+        themes: "Ancestors, the thinning veil, endings and the witch's new year.", colours: ["#1C1414", "#C8642A", "#5A2A6E"],
+        herbs: "Mugwort, rosemary, sage, apple, pumpkin", crystals: "Obsidian, smoky quartz, jet", foods: "Apples, pumpkin, soul cakes, root vegetables",
+        hearth: ["Light a candle in the window for those gone before", "Ward the threshold with salt and rosemary", "Set a place or photo for your ancestors"],
+        altar: "Photos of loved ones, apples, pumpkins, black and orange candles." },
+    ];
+    const now = new Date(), t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()), DAY = 864e5;
+    const dateOf = (sb, y) => new Date(y, sb.m, sb.d);
+    // find the most recent sabbat on or before today, and the next one
+    let cur, curDate, nxt, nxtDate;
+    const all = [];
+    for (const y of [t0.getFullYear() - 1, t0.getFullYear(), t0.getFullYear() + 1]) W.forEach((sb, i) => all.push({ sb, i, dt: dateOf(sb, y) }));
+    all.sort((a, b) => a.dt - b.dt);
+    for (let k = 0; k < all.length - 1; k++) if (all[k].dt <= t0 && all[k + 1].dt > t0) { cur = all[k]; nxt = all[k + 1]; }
+    const days = Math.round((nxt.dt - t0) / DAY), isToday = +cur.dt === +t0;
+    const S = cur.sb;
+    $("r-altar").style.setProperty("--season", S.c);
+    $("seasonK").textContent = isToday ? "Blessed " + S.n + " · today" : "This season";
+    $("seasonName").textContent = "Season of " + S.n;
+    $("seasonLine").textContent = S.line;
+    $("altarSabbat").textContent = `${nxt.sb.n} ${days === 1 ? "tomorrow" : "in " + days + " days"}`;
+    $("seasonTry").innerHTML = S.hearth.map(h => `<span>${esc(h)}</span>`).join("");
+    // mini wheel: Yule at the top, clockwise
+    const ang = i => (i * 45 - 90) * Math.PI / 180, R = 36;
+    const frac = (t0 - cur.dt) / (nxt.dt - cur.dt), todayA = ((cur.i + frac) * 45 - 90) * Math.PI / 180;
+    const P = (a, r) => `${(Math.cos(a) * r).toFixed(2)} ${(Math.sin(a) * r).toFixed(2)}`;
+    let g = `<circle r="${R}" fill="rgba(36,21,13,.55)" stroke="rgba(243,217,177,.35)" stroke-width="1"/>`;
+    g += `<path d="M0 0 L${P(ang(cur.i), R)} A${R} ${R} 0 0 1 ${P(ang(cur.i + 1), R)} Z" fill="${S.c}" opacity=".55"/>`;
+    for (let i = 0; i < 8; i++) { g += `<line x1="0" y1="0" x2="${P(ang(i), R).replace(" ", '" y2="')}" stroke="rgba(243,217,177,.18)"/>`;
+      g += `<circle cx="${P(ang(i), R).split(" ")[0]}" cy="${P(ang(i), R).split(" ")[1]}" r="${i === cur.i ? 4.5 : 2.6}" fill="${i === cur.i ? "#F3D9B1" : W[i].c}" stroke="#24150D" stroke-width=".8"/>`; }
+    const [mx, my] = P(todayA, R).split(" ");
+    g += `<line x1="0" y1="0" x2="${mx}" y2="${my}" stroke="#F3D9B1" stroke-width="1.6" stroke-linecap="round" class="mark"/><circle r="3.2" fill="#F3D9B1"/>`;
+    g += `<circle class="mark" cx="${mx}" cy="${my}" r="3" fill="#fff6e6" style="filter:drop-shadow(0 0 3px #ffcf8a)"/>`;
+    $("wheelMini").innerHTML = g;
+    // full guide in the sheet
+    const sec = (h, body) => `<div class="sab-sec"><h3>${h}</h3>${body}</div>`;
+    const guide = sb => sec("Themes", `<p style="margin:0">${sb.themes}</p>`) + sec("Colours", `<div class="swatches">${sb.colours.map(c => `<i style="background:${c}"></i>`).join("")}</div>`)
+      + sec("Herbs", `<p style="margin:0">${sb.herbs}</p>`) + sec("Crystals", `<p style="margin:0">${sb.crystals}</p>`) + sec("Foods", `<p style="margin:0">${sb.foods}</p>`)
+      + sec("Hearthcraft this season", `<ul>${sb.hearth.map(h => `<li>${h}</li>`).join("")}</ul>`) + sec("Dress your altar", `<p style="margin:0">${sb.altar}</p>`);
+    $("season").addEventListener("click", () => openSheet(`<span class="chip">Wheel of the Year</span><h2>Season of ${S.n}</h2>
+      <p class="muted" style="margin-top:4px">Since ${cur.dt.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}. ${S.line}</p>${guide(S)}
+      <div class="sab-sec" style="margin-top:22px;padding-top:14px;border-top:1px solid var(--line)"><span class="chip">Coming up</span><h2 style="margin-top:6px">${nxt.sb.n}, ${nxt.dt.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</h2>
+      <p class="muted" style="margin-top:4px">${days === 1 ? "Tomorrow" : "In " + days + " days"}. ${nxt.sb.line}</p>${nxt.sb.n === "Yule" ? `<p class="muted">Your Omen Days start on Yule: 12 days, 12 runes, one for each month of next year.</p>` : ""}
+      ${sec("Get ready", `<ul>${nxt.sb.hearth.map(h => `<li>${h}</li>`).join("")}</ul>`)}${sec("Dress your altar", `<p style="margin:0">${nxt.sb.altar}</p>`)}</div>
+      <div class="bar"><span></span><div class="btns"><button class="btn ghost" data-close>Close</button></div></div>`));
+    // seasonal particles drifting over the altar
+    const cv = $("seasonFx"), ctx = cv.getContext("2d"), room = $("r-altar"), still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let w = 0, h = 0, ps = [];
+    const FX = {
+      snow: { n: 40, col: () => "255,255,255", r: () => .8 + Math.random() * 1.8, vy: () => .25 + Math.random() * .45, sway: .4, a: .75 },
+      motes: { n: 30, col: () => "255,240,200", r: () => .6 + Math.random() * 1.3, vy: () => .12 + Math.random() * .2, sway: .3, a: .6 },
+      petals: { n: 22, col: () => Math.random() < .5 ? "248,205,215" : "255,245,235", r: () => 2 + Math.random() * 2.5, vy: () => .35 + Math.random() * .4, sway: .9, a: .85, leaf: 1 },
+      sun: { n: 34, col: () => "255,214,120", r: () => .7 + Math.random() * 1.6, vy: () => -(.12 + Math.random() * .25), sway: .3, a: .7 },
+      leaves: { n: 16, col: () => ["200,100,42", "166,90,58", "201,151,62", "142,47,36"][Math.floor(Math.random() * 4)], r: () => 3 + Math.random() * 3, vy: () => .4 + Math.random() * .5, sway: 1.2, a: .9, leaf: 1 },
+    }[S.fx];
+    const spawn = (anyY) => ({ x: Math.random() * w, y: anyY ? Math.random() * h : (FX.vy() < 0 ? h + 10 : -10), r: FX.r(), vy: FX.vy(), c: FX.col(), ph: Math.random() * 6.3, rot: Math.random() * 6.3, vr: (Math.random() - .5) * .04 });
+    const size = () => { const d = Math.min(devicePixelRatio || 1, 2); w = cv.clientWidth; h = cv.clientHeight; cv.width = w * d; cv.height = h * d; ctx.setTransform(d, 0, 0, d, 0, 0); ps = Array.from({ length: FX.n }, () => spawn(true)); };
+    addEventListener("resize", size);
+    (function tick(tm) {
+      requestAnimationFrame(tick);
+      if (still || rooms[current] !== room) return;
+      if (!w || cv.clientWidth !== w) size();
+      ctx.clearRect(0, 0, w, h);
+      for (const p of ps) {
+        p.y += p.vy; p.x += Math.sin(tm / 1400 + p.ph) * FX.sway * .5; p.rot += p.vr;
+        if (p.y > h + 12 || p.y < -12) Object.assign(p, spawn(false));
+        ctx.globalAlpha = FX.a * (FX.leaf ? 1 : .5 + .5 * Math.sin(tm / 900 + p.ph));
+        ctx.fillStyle = `rgb(${p.c})`;
+        if (FX.leaf) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot + Math.sin(tm / 700 + p.ph) * .6); ctx.beginPath(); ctx.ellipse(0, 0, p.r, p.r * .5, 0, 0, 6.283); ctx.fill(); ctx.restore(); }
+        else { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill(); }
+      }
+      ctx.globalAlpha = 1;
+    })(0);
+  })();
+
+  document.addEventListener("click", e => {
+    const t = e.target.closest(".tcard.flipped[data-card]"); if (!t) return;
+    const c = DECK[+t.dataset.card], rev = t.dataset.rev === "1";
+    openSheet(`<div class="card-big${rev ? " rev" : ""}"><img src="${c.img}" alt="${esc(c.n)}"></div><h2 style="text-align:center">${esc(c.n)}${rev ? " <small style='font-size:.7em;opacity:.7'>(reversed)</small>" : ""}</h2>
+      <p class="muted" style="text-align:center;margin-top:4px">${esc(rev ? c.rv : c.up)}</p><p class="muted" style="text-align:center;font-size:.85rem">${rev ? "Upright: " + esc(c.up) : "Reversed: " + esc(c.rv)}</p>
+      <div class="bar"><span></span><div class="btns"><button class="btn ghost" data-close>Close</button></div></div>`);
+  });
+
+  // ---------- Backup & restore ----------
+  (() => {
+    const keys = () => Object.keys(localStorage).filter(k => k.startsWith("hearthbook."));
+    const fmt = t => t ? new Date(+t).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "never";
+    function backup() {
+      const data = { app: "Hearthbook", version: 1, saved: new Date().toISOString(), data: Object.fromEntries(keys().filter(k => k !== "hearthbook.lastBackup").map(k => [k, localStorage.getItem(k)])) };
+      const blob = new Blob([JSON.stringify(data, null, 1)], { type: "application/json" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `hearthbook-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      try { localStorage.setItem("hearthbook.lastBackup", Date.now()); } catch (e) {}
+      $("bkLast") && ($("bkLast").textContent = fmt(Date.now()));
+    }
+    function restore(file) {
+      const r = new FileReader();
+      r.onload = () => {
+        try {
+          const j = JSON.parse(r.result); if (j.app !== "Hearthbook" || !j.data) throw 0;
+          $("bkMsg").innerHTML = `This backup is from ${fmt(Date.parse(j.saved))}. Replace everything in the app with it? <button class="btn" id="bkYes" style="margin-top:10px;width:100%">Yes, restore it</button>`;
+          $("bkYes").onclick = () => { keys().forEach(k => k !== "hearthbook.lastBackup" && localStorage.removeItem(k)); Object.entries(j.data).forEach(([k, v]) => k.startsWith("hearthbook.") && localStorage.setItem(k, v)); location.reload(); };
+        } catch (e) { $("bkMsg").textContent = "That file isn't a Hearthbook backup."; }
+      };
+      r.readAsText(file);
+    }
+    $("menuBtn").addEventListener("click", () => {
+      let last = null; try { last = localStorage.getItem("hearthbook.lastBackup"); } catch (e) {}
+      openSheet(`<h2>Backup</h2>
+        <p class="muted">Your notes live only on this device. Download a backup now and then, and keep it somewhere safe like Google Drive.</p>
+        <p class="muted">Last backup: <b id="bkLast">${fmt(last)}</b></p>
+        <div class="backup-row">
+          <button class="btn" id="bkSave">Download backup</button>
+          <label class="btn ghost" style="text-align:center;cursor:pointer">Restore from a backup<input type="file" id="bkFile" accept=".json,application/json" hidden></label>
+        </div>
+        <p class="muted" id="bkMsg"></p>
+        <div class="bar"><span></span><div class="btns"><button class="btn ghost" data-close>Close</button></div></div>`);
+      $("bkSave").onclick = backup;
+      $("bkFile").onchange = e => e.target.files[0] && restore(e.target.files[0]);
+    });
+    // ask the browser to keep this app's storage (helps on Android)
+    navigator.storage?.persist?.().catch(() => {});
+  })();
+
+  render(); tabs.tarot();
+  requestAnimationFrame(() => { fromHash(); onScroll(); });
+})();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+</script>
+</body>
+</html>
