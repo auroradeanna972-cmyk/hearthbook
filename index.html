@@ -576,6 +576,16 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
 .sheet form { display: grid; gap: 10px; }
 .sheet label { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--vellum-dim); display: grid; gap: 4px; }
 .danger { color: var(--rose); font-size: .9rem; }
+/* Photos on notes */
+.note-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; margin-top: 12px; }
+.note-photos:empty { display: none; }
+.note-photo { position: relative; display: block; aspect-ratio: 1; }
+.note-photo > button[data-photo] { display: block; width: 100%; height: 100%; padding: 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
+.note-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.note-photo-x { position: absolute; top: -6px; right: -6px; width: 28px; height: 28px; border-radius: 50%; background: rgba(0,0,0,.75); color: #fff; font-size: 1.1rem; line-height: 1; border: 1px solid var(--line); }
+.sheet label.note-photo-add { display: inline-flex; justify-content: center; margin-top: 10px; cursor: pointer; text-transform: none; letter-spacing: 0; font-size: .95rem; }
+.photo-view { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.92); display: grid; place-items: center; padding: 12px; cursor: zoom-out; }
+.photo-view img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .example { display: inline-block; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--vellum-dim); border: 1px dashed var(--line); border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1051,9 +1061,28 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
   function closeSheet() { sheet.classList.remove("open"); scrim.classList.remove("open"); }
   scrim.addEventListener("click", closeSheet);
   const secLabel = { astrology: "Topic", bookcase: "Book", kitchen: "Type (Tea, Oil, Bath, Potion…)", hearth: "Category", crystal: "Theme", divination: "Kind" };
+  // Photos on notes (pages of a book, a recipe card…). Each photo is its own "hearthbook.photo.<id>" entry, shrunk on
+  // this device to 1280 px on the longest side so it stays readable but syncs quickly; the note keeps the list of ids.
+  const PH = "hearthbook.photo.";
+  const photoSrc = pid => { try { return localStorage.getItem(PH + pid) || ""; } catch (e) { return ""; } };
+  const shrinkPhoto = file => new Promise((ok, bad) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 1280 / Math.max(img.width, img.height)), cv = document.createElement("canvas");
+      cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+      cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url);
+      ok(cv.toDataURL("image/jpeg", 0.72));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); bad(); };
+    img.src = url;
+  });
+  const photoGrid = (ids, removable) => ids.filter(photoSrc).map(pid => `<span class="note-photo"><button type="button" data-photo="${pid}" aria-label="Open photo"><img src="${photoSrc(pid)}" alt=""></button>${removable ? `<button type="button" class="note-photo-x" data-unphoto="${pid}" aria-label="Remove photo">×</button>` : ""}</span>`).join("");
+  const dropPhotos = ids => (ids || []).forEach(pid => { try { localStorage.removeItem(PH + pid); } catch (e) {} });
+
   function viewNote(id) {
     const n = notes.find(x => x.id === id); if (!n) return;
     openSheet(`<span class="chip">${esc(n.g)}</span>${exTag(n)}<h2>${esc(n.t)}</h2><div class="body">${esc(n.b)}</div>
+      ${n.ph && n.ph.length ? `<div class="note-photos">${photoGrid(n.ph, false)}</div>` : ""}
       <div class="bar"><button class="danger" data-del="${n.id}">Delete</button><div class="btns"><button class="btn ghost" data-close>Close</button><button class="btn" data-edit="${n.id}">Edit</button></div></div>`);
   }
   function editNote(id, sec, group) {
@@ -1064,16 +1093,47 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
         <label>${n.s === "crystal" ? "Affirmation" : "Title"}<input id="fT" required value="${esc(n.t)}" placeholder="${n.s === "kitchen" ? "Moon water lemonade" : "Title"}"></label>
         <label>${secLabel[n.s]}<input id="fG" list="fGl" value="${esc(n.g)}" placeholder="${esc(groups[0] || "")}"><datalist id="fGl">${groups.map(g => `<option value="${esc(g)}">`).join("")}</datalist></label>
         ${n.s === "crystal" ? "" : `<label>Notes<textarea id="fB" placeholder="Ingredients, steps, thoughts…">${esc(n.b)}</textarea></label>`}
+        ${n.s === "crystal" ? "" : `<div class="note-photos" id="fPh">${photoGrid(n.ph || [], true)}</div>
+          <label class="btn ghost note-photo-add">Add photo<input type="file" id="fPhIn" accept="image/*" multiple hidden></label>
+          <p class="muted" id="fPhMsg" style="margin:0"></p>`}
         <div class="bar"><span></span><div class="btns"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn" type="submit">Save</button></div></div>
       </form>`);
+    // Photos: new ones wait here until Save; removed ones are only deleted on Save, so Cancel changes nothing.
+    let ph = [...(n.ph || [])]; const fresh = {};
+    const drawPh = () => { $("fPh").innerHTML = ph.map(pid => { const src = fresh[pid] || photoSrc(pid); return src ? `<span class="note-photo"><button type="button" data-photo="${pid}" aria-label="Open photo"><img src="${src}" alt=""></button><button type="button" class="note-photo-x" data-unphoto="${pid}" aria-label="Remove photo">×</button></span>` : ""; }).join(""); };
+    if ($("fPh")) {
+      $("fPh").addEventListener("click", e => { const x = e.target.closest("[data-unphoto]"); if (!x) return; e.stopPropagation(); ph = ph.filter(p => p !== x.dataset.unphoto); drawPh(); });
+      $("fPhIn").onchange = async e => {
+        for (const f of e.target.files) {
+          try { const pid = "p" + Date.now() + Math.random().toString(36).slice(2, 6); fresh[pid] = await shrinkPhoto(f); ph.push(pid); }
+          catch (err) { $("fPhMsg").textContent = "One picture couldn't be opened."; }
+        }
+        e.target.value = ""; drawPh();
+      };
+    }
     $("noteForm").addEventListener("submit", e => {
       e.preventDefault();
       const t = $("fT").value.trim(); if (!t) return;
       const g = $("fG").value.trim() || groups[0] || "General", b = $("fB") ? $("fB").value : "";
-      if (id) Object.assign(n, { t, g, b, ex: 0, d: Date.now() }); else notes.push({ id: "n" + Date.now(), s: n.s, g, t, b, d: Date.now() });
+      for (const [pid, src] of Object.entries(fresh)) {
+        if (!ph.includes(pid)) continue;
+        try { localStorage.setItem(PH + pid, src); }
+        catch (err) { Object.keys(fresh).forEach(p => { try { localStorage.removeItem(PH + p); } catch (e2) {} }); $("fPhMsg").textContent = "Hearthbook's storage on this device is full, so the new photos weren't saved. Try fewer photos, or remove some from other notes."; return; }
+      }
+      dropPhotos((n.ph || []).filter(p => !ph.includes(p)));
+      const extra = ph.length ? { ph } : { ph: undefined };
+      if (id) Object.assign(n, { t, g, b, ex: 0, d: Date.now() }, extra); else notes.push({ id: "n" + Date.now(), s: n.s, g, t, b, d: Date.now(), ...extra });
       save(); render(); closeSheet();
     });
   }
+  // Tap a photo to see it full size; tap again to close.
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-photo]"); if (!b) return;
+    e.preventDefault();
+    const v = document.createElement("div"); v.className = "photo-view"; v.setAttribute("role", "dialog"); v.setAttribute("aria-label", "Photo, tap to close");
+    v.innerHTML = `<img src="${b.querySelector("img").src}" alt="">`;
+    v.onclick = () => v.remove(); document.body.appendChild(v);
+  });
   function openBook(g) {
     const list = bySec("bookcase").filter(n => n.g === g);
     openSheet(`<span class="chip">Notebook</span><h2>${esc(g)}</h2><div class="list" style="margin-top:12px">${list.map(row).join("")}</div>
@@ -1086,7 +1146,7 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
     const d = t.dataset;
     if (d.open) viewNote(d.open);
     else if (d.edit) editNote(d.edit);
-    else if (d.confirm) { notes = notes.filter(n => n.id !== d.confirm); save(); render(); closeSheet(); }
+    else if (d.confirm) { dropPhotos(notes.find(n => n.id === d.confirm)?.ph); notes = notes.filter(n => n.id !== d.confirm); save(); render(); closeSheet(); }
     else if (d.del) { t.outerHTML = `<span class="danger">Delete this? <button class="danger" style="text-decoration:underline" data-confirm="${d.del}">Yes, delete</button></span>`; }
     else if (d.close !== undefined) closeSheet();
     else if (d.add) editNote(null, d.add);
