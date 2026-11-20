@@ -802,6 +802,28 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
   Storage.prototype.removeItem = function (k) { rawRemove.call(this, k); if (this === ls) mark(String(k)); };
 
   const session = () => read(SKEY, null);
+
+  // A "reset your password" email link lands here with its one-time sign-in in the address (#access_token=…&type=recovery).
+  // Take it out of the address straight away (before the rooms read the address), and offer a new password once the page is up.
+  let recovery = null;
+  (() => {
+    const h = new URLSearchParams(location.hash.slice(1));
+    if (h.get("type") === "recovery" && h.get("access_token")) recovery = { access_token: h.get("access_token"), refresh_token: h.get("refresh_token"), expires_in: +h.get("expires_in") || 3600 };
+    else if (h.get("error_description")) recovery = { error: h.get("error_description").replace(/\+/g, " ") };
+    if (recovery) history.replaceState(null, "", location.pathname + location.search);
+  })();
+  async function setPassword(password) {
+    const r = await fetch(`${URL_}/auth/v1/user`, { method: "PUT", headers: { apikey: ANON, Authorization: `Bearer ${recovery.access_token}`, "Content-Type": "application/json" }, body: JSON.stringify({ password }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401 || r.status === 403) throw new Error("This reset link has expired. Ask for a new one with \"Forgot my password\" under ⋮ → Sync.");
+    if (!r.ok) throw new Error(j.msg || j.message || "Couldn't change the password. Ask for a new reset email and try again.");
+    keep({ ...recovery, user: j }); recovery = null; markAll(); sync();
+  }
+  async function forgot(email) {
+    const back = "https://auroradeanna972-cmyk.github.io/hearthbook/";
+    const r = await fetch(`${URL_}/auth/v1/recover?redirect_to=${encodeURIComponent(back)}`, { method: "POST", headers: { apikey: ANON, "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.msg || j.message || "Couldn't send the email just now."); }
+  }
   async function auth(path, body) {
     const r = await fetch(`${URL_}/auth/v1/${path}`, { method: "POST", headers: { apikey: ANON, "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));
@@ -875,7 +897,8 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
   window.HBSync = {
     get email() { return session()?.email || null; }, get status() { return status; },
     get last() { return read("hbsync.last", 0); },
-    onChange(f) { listeners = [f]; }, sync, signIn, signOut,
+    onChange(f) { listeners = [f]; }, sync, signIn, signOut, forgot, setPassword,
+    get recovery() { return recovery; }, clearRecovery() { recovery = null; },
   };
 })();
 </script>
@@ -1895,6 +1918,7 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
                <input id="syPass" type="password" autocomplete="current-password" placeholder="Password (8 or more characters)" style="width:100%">
                <button class="btn" id="syIn">Sign in</button>
                <button class="btn ghost" id="syNew">First time? Create my account</button>
+               <button class="btn ghost" id="syForgot">Forgot my password</button>
              </div>`;
         if (msg) box.insertAdjacentHTML("beforeend", `<p class="muted">${esc(msg)}</p>`);
         const go = async create => {
@@ -1905,6 +1929,12 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
         };
         $("syIn") && ($("syIn").onclick = () => go(false));
         $("syNew") && ($("syNew").onclick = () => go(true));
+        $("syForgot") && ($("syForgot").onclick = async () => {
+          const e = $("syEmail").value.trim();
+          if (!e) return draw("Type your email above, then tap Forgot my password.");
+          try { await S.forgot(e); draw(`Sent. Open the email on any device and tap the link. It opens Hearthbook in your browser, where you can choose a new password. Then sign in here with it.`); }
+          catch (err) { draw(err.message); }
+        });
         $("syNow") && ($("syNow").onclick = () => S.sync());
         $("syOut") && ($("syOut").onclick = () => { S.signOut(); draw(); });
       }
@@ -1913,6 +1943,33 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
     }
     // ask the browser to keep this app's storage (helps on Android)
     navigator.storage?.persist?.().catch(() => {});
+
+    // Arrived from a "reset your password" email: choose a new password here.
+    function recoverySheet(msg = "") {
+      const S = window.HBSync, rc = S && S.recovery; if (!rc) return;
+      if (rc.error) {
+        openSheet(`<h2>Reset link didn't work</h2><p class="muted">${esc(rc.error)}. Reset links only work once and only for an hour. Open ⋮ → Sync, type your email and tap "Forgot my password" for a fresh one.</p>
+          <div class="bar"><span></span><div class="btns"><button class="btn ghost" data-close>Close</button></div></div>`);
+        S.clearRecovery(); return;
+      }
+      openSheet(`<h2>Choose a new password</h2><p class="muted">For syncing Hearthbook. Use it to sign in on your phone and your PC.</p>
+        <div class="backup-row">
+          <input id="rpPass" type="password" autocomplete="new-password" placeholder="New password (8 or more characters)">
+          <input id="rpPass2" type="password" autocomplete="new-password" placeholder="Type it again">
+          <button class="btn" id="rpSave">Save new password</button>
+        </div>
+        <p class="muted" id="rpMsg">${esc(msg)}</p>
+        <div class="bar"><span></span><div class="btns"><button class="btn ghost" data-close>Close</button></div></div>`);
+      $("rpSave").onclick = async () => {
+        const p = $("rpPass").value;
+        if (p.length < 8) return ($("rpMsg").textContent = "Use 8 or more characters.");
+        if (p !== $("rpPass2").value) return ($("rpMsg").textContent = "The two passwords don't match.");
+        $("rpSave").disabled = true;
+        try { await S.setPassword(p); $("rpMsg").textContent = "Saved. You're signed in here, and you can now sign in on your other devices with this password."; $("rpSave").remove(); }
+        catch (err) { $("rpSave").disabled = false; $("rpMsg").textContent = err.message; }
+      };
+    }
+    setTimeout(recoverySheet, 600);
   })();
 
   render(); tabs.tarot();
