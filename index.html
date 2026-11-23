@@ -550,7 +550,7 @@ header.top { position: relative; z-index: 2; display: flex; align-items: center;
 #r-divination .chip { color: var(--pink); }
 #r-divination input { border-color: rgba(177,49,250,.5); background: rgba(13,0,24,.6); }
 
-input, textarea { width: 100%; font: inherit; color: var(--vellum); background: rgba(0,0,0,.25); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+input, textarea, select { width: 100%; font: inherit; color: var(--vellum); background: rgba(0,0,0,.25); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 textarea { min-height: 180px; resize: vertical; line-height: 1.5; }
 
 /* Nav */
@@ -586,6 +586,27 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
 .sheet label.note-photo-add { display: inline-flex; justify-content: center; margin-top: 10px; cursor: pointer; text-transform: none; letter-spacing: 0; font-size: .95rem; }
 .photo-view { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.92); display: grid; place-items: center; padding: 12px; cursor: zoom-out; }
 .photo-view img { max-width: 100%; max-height: 100%; object-fit: contain; }
+/* Chapters in the Book of Shadows and Grimoire: leather tabs on a wooden page edge, the open one lit like an ember */
+.ch-tabs { position: sticky; top: -10px; z-index: 1; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin-top: 12px; padding-top: 10px; background: var(--dusk); border-bottom: 2px solid #8B5E3C; }
+.ch-tabs::-webkit-scrollbar { display: none; }
+.ch-tab { flex: 0 0 auto; max-width: 72%; min-height: 40px; display: inline-flex; align-items: baseline; gap: 6px; padding: 9px 14px 7px; border-radius: 10px 10px 0 0; background: rgba(74,47,35,.6); border: 1px solid rgba(139,94,60,.5); border-bottom: 0; color: #d6ccb6; font-family: var(--serif); font-size: 1rem; white-space: nowrap; transition: background .2s, color .2s, box-shadow .2s; }
+.ch-tab span { overflow: hidden; text-overflow: ellipsis; }
+.ch-tab small { font-family: var(--body); font-size: .72rem; opacity: .85; }
+.ch-tab[aria-selected="true"] { background: linear-gradient(#a8693a, #7a4a2c); color: #fff3e2; border-color: #c8642a; box-shadow: 0 -3px 14px rgba(232,140,60,.4), inset 0 1px 0 rgba(255,220,170,.35); }
+.ch-tab.add { color: var(--candle); background: transparent; border-style: dashed; border-color: rgba(232,182,96,.5); font-family: var(--body); font-size: .9rem; }
+.ch-page { padding: 12px; min-height: 140px; border: 1px solid rgba(139,94,60,.4); border-top: 0; border-radius: 0 0 12px 12px; background: linear-gradient(rgba(74,47,35,.35), rgba(43,29,20,.55)); }
+.ch-page h3 { margin: 0 0 10px; font-family: var(--serif); font-weight: 400; font-size: 1.15rem; color: var(--candle); }
+.ch-page .row { background: rgba(43,29,20,.7); border-color: rgba(139,94,60,.35); }
+.ch-link { color: var(--candle); font-size: .9rem; text-decoration: underline; text-underline-offset: 3px; padding: 8px 0; }
+.ch-list { display: grid; gap: 8px; margin-top: 12px; }
+.ch-row { display: grid; grid-template-columns: 1fr 40px 40px 40px; gap: 6px; align-items: center; }
+.ch-row .ch-count { grid-column: 1 / -1; margin: -2px 0 0 4px; font-size: .8rem; }
+.ch-mini { height: 40px; border-radius: 10px; border: 1px solid var(--line); display: grid; place-items: center; font-size: 1rem; color: var(--vellum); }
+span.ch-mini { border: 0; }
+.ch-mini:disabled { opacity: .3; cursor: default; }
+.ch-mini.danger { color: var(--rose); }
+.sheet form.ch-add { display: flex; gap: 8px; margin-top: 14px; }
+.ch-add input { flex: 1; min-width: 0; }
 .example { display: inline-block; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--vellum-dim); border: 1px dashed var(--line); border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -948,6 +969,17 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(notes)); } catch (e) {} };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const bySec = s => notes.filter(n => n.s === s).sort((a, b) => b.d - a.d);
+  // Chapters for the two lectern books (see "Chapters" further down).
+  const CH = "hearthbook.chapters.v1", CH_BOOKS = ["Book of Shadows", "Grimoire"];
+  let chapterStore; try { chapterStore = JSON.parse(localStorage.getItem(CH) || "{}"); } catch (e) { chapterStore = null; }
+  if (!chapterStore || typeof chapterStore !== "object" || Array.isArray(chapterStore)) chapterStore = {};
+  const saveChapters = () => { try { localStorage.setItem(CH, JSON.stringify(chapterStore)); } catch (e) {} };
+  const chaptersOf = g => Array.isArray(chapterStore[g]) && chapterStore[g].length ? chapterStore[g] : [{ id: "general", name: "General" }];
+  const chaptered = n => n.s === "bookcase" && CH_BOOKS.includes(n.g);
+  const chapterOf = n => { const cs = chaptersOf(n.g); return cs.find(c => c.id === n.c) || cs[0]; };
+  const canonBook = g => CH_BOOKS.find(b => b.toLowerCase() === g.toLowerCase()) || g;
+  const openChapter = {};          // book -> the chapter tab last open
+  let bookCtx = null, bookView = false;   // the lectern book the sheet belongs to, and whether it's showing the book itself
   const $ = id => document.getElementById(id);
 
   // ---------- Rooms & swipe ----------
@@ -1038,7 +1070,7 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
   const spineColors = ["#4A2F23", "#6E8A62", "#8B5E3C", "#3F4F38", "#5C3B2A", "#9CAF88", "#704A30", "#566B4C"];
   const heights = [128, 114, 134, 108, 122, 130, 112, 120];
   const exTag = n => n.ex ? '<span class="example">example</span>' : "";
-  const row = n => `<button class="row" data-open="${n.id}"><b>${esc(n.t)}${exTag(n)}</b><span class="chip">${esc(n.g)}</span><small>${esc(n.b.split("\n")[0] || " ")}</small></button>`;
+  const row = n => `<button class="row" data-open="${n.id}"><b>${esc(n.t)}${exTag(n)}</b><span class="chip">${esc(n.g)}${chaptered(n) ? " · " + esc(chapterOf(n).name) : ""}</span><small>${esc(n.b.split("\n")[0] || " ")}</small></button>`;
   let hearthFilter = "All";
   function render() {
     const books = [...new Set(bySec("bookcase").map(n => n.g))].filter(g => g !== "Book of Shadows" && g !== "Grimoire").sort();
@@ -1058,7 +1090,7 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
   // ---------- Sheet ----------
   const sheet = $("sheet"), scrim = $("scrim"), sb = $("sheetBody");
   function openSheet(html) { sb.innerHTML = html; sheet.scrollTop = 0; sheet.classList.add("open"); scrim.classList.add("open"); setTimeout(() => sheet.querySelector("input,button")?.focus({ preventScroll: true }), 350); }
-  function closeSheet() { sheet.classList.remove("open"); scrim.classList.remove("open"); }
+  function closeSheet() { sheet.classList.remove("open"); scrim.classList.remove("open"); bookCtx = null; bookView = false; }
   scrim.addEventListener("click", closeSheet);
   const secLabel = { astrology: "Topic", bookcase: "Book", kitchen: "Type (Tea, Oil, Bath, Potion…)", hearth: "Category", crystal: "Theme", divination: "Kind" };
   // Photos on notes (pages of a book, a recipe card…). Each photo is its own "hearthbook.photo.<id>" entry, shrunk on
@@ -1081,17 +1113,19 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
 
   function viewNote(id) {
     const n = notes.find(x => x.id === id); if (!n) return;
-    openSheet(`<span class="chip">${esc(n.g)}</span>${exTag(n)}<h2>${esc(n.t)}</h2><div class="body">${esc(n.b)}</div>
+    const inBook = bookCtx && bookCtx === n.g;
+    openSheet(`<span class="chip">${esc(n.g)}</span>${chaptered(n) ? ` <span class="chip">${esc(chapterOf(n).name)}</span>` : ""}${exTag(n)}<h2>${esc(n.t)}</h2><div class="body">${esc(n.b)}</div>
       ${n.ph && n.ph.length ? `<div class="note-photos">${photoGrid(n.ph, false)}</div>` : ""}
-      <div class="bar"><button class="danger" data-del="${n.id}">Delete</button><div class="btns"><button class="btn ghost" data-close>Close</button><button class="btn" data-edit="${n.id}">Edit</button></div></div>`);
+      <div class="bar"><button class="danger" data-del="${n.id}">Delete</button><div class="btns">${inBook ? `<button class="btn ghost" data-backbook>Back to chapter</button>` : `<button class="btn ghost" data-close>Close</button>`}<button class="btn" data-edit="${n.id}">Edit</button></div></div>`);
   }
-  function editNote(id, sec, group) {
-    const n = id ? notes.find(x => x.id === id) : { s: sec, g: group || "", t: "", b: "" };
-    const groups = [...new Set(bySec(n.s).map(x => x.g))];
+  function editNote(id, sec, group, chapter) {
+    const n = id ? notes.find(x => x.id === id) : { s: sec, g: group || "", t: "", b: "", c: chapter };
+    const groups = [...new Set([...bySec(n.s).map(x => x.g), ...(n.s === "bookcase" ? CH_BOOKS : [])])];
     openSheet(`<h2>${id ? "Edit" : "New"} ${n.s === "crystal" ? "affirmation" : n.s === "kitchen" ? "recipe" : "note"}</h2>
       <form id="noteForm">
         <label>${n.s === "crystal" ? "Affirmation" : "Title"}<input id="fT" required value="${esc(n.t)}" placeholder="${n.s === "kitchen" ? "Moon water lemonade" : "Title"}"></label>
         <label>${secLabel[n.s]}<input id="fG" list="fGl" value="${esc(n.g)}" placeholder="${esc(groups[0] || "")}"><datalist id="fGl">${groups.map(g => `<option value="${esc(g)}">`).join("")}</datalist></label>
+        ${n.s === "bookcase" ? `<label id="fCw" style="display:none">Chapter<select id="fC"></select></label>` : ""}
         ${n.s === "crystal" ? "" : `<label>Notes<textarea id="fB" placeholder="Ingredients, steps, thoughts…">${esc(n.b)}</textarea></label>`}
         ${n.s === "crystal" ? "" : `<div class="note-photos" id="fPh">${photoGrid(n.ph || [], true)}</div>
           <label class="btn ghost note-photo-add">Add photo<input type="file" id="fPhIn" accept="image/*" multiple hidden></label>
@@ -1099,6 +1133,19 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
         <div class="bar"><span></span><div class="btns"><button type="button" class="btn ghost" data-close>Cancel</button><button class="btn" type="submit">Save</button></div></div>
       </form>`);
     // Photos: new ones wait here until Save; removed ones are only deleted on Save, so Cancel changes nothing.
+    // Book of Shadows and Grimoire entries pick a chapter; the list follows whatever is typed in the Book box.
+    if ($("fC")) {
+      const fillCh = () => {
+        const g = canonBook($("fG").value.trim()), on = CH_BOOKS.includes(g);
+        $("fCw").style.display = on ? "" : "none";
+        if (!on) return;
+        const cs = chaptersOf(g), prev = $("fC").dataset.book === g ? $("fC").value : null;
+        const want = prev || (g === n.g && n.c ? chapterOf({ ...n, g }).id : null) || openChapter[g] || cs[0].id;
+        $("fC").dataset.book = g;
+        $("fC").innerHTML = cs.map(c => `<option value="${esc(c.id)}"${c.id === want ? " selected" : ""}>${esc(c.name)}</option>`).join("");
+      };
+      $("fG").addEventListener("input", fillCh); fillCh();
+    }
     let ph = [...(n.ph || [])]; const fresh = {};
     const drawPh = () => { $("fPh").innerHTML = ph.map(pid => { const src = fresh[pid] || photoSrc(pid); return src ? `<span class="note-photo"><button type="button" data-photo="${pid}" aria-label="Open photo"><img src="${src}" alt=""></button><button type="button" class="note-photo-x" data-unphoto="${pid}" aria-label="Remove photo">×</button></span>` : ""; }).join(""); };
     if ($("fPh")) {
@@ -1114,7 +1161,9 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
     $("noteForm").addEventListener("submit", e => {
       e.preventDefault();
       const t = $("fT").value.trim(); if (!t) return;
-      const g = $("fG").value.trim() || groups[0] || "General", b = $("fB") ? $("fB").value : "";
+      const g = canonBook($("fG").value.trim() || groups[0] || "General"), b = $("fB") ? $("fB").value : "";
+      // Chapter only for Book of Shadows / Grimoire entries; an entry moved to any other book drops it.
+      const c = n.s === "bookcase" && CH_BOOKS.includes(g) && $("fC") ? $("fC").value : undefined;
       for (const [pid, src] of Object.entries(fresh)) {
         if (!ph.includes(pid)) continue;
         try { localStorage.setItem(PH + pid, src); }
@@ -1122,8 +1171,9 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
       }
       dropPhotos((n.ph || []).filter(p => !ph.includes(p)));
       const extra = ph.length ? { ph } : { ph: undefined };
-      if (id) Object.assign(n, { t, g, b, ex: 0, d: Date.now() }, extra); else notes.push({ id: "n" + Date.now(), s: n.s, g, t, b, d: Date.now(), ...extra });
-      save(); render(); closeSheet();
+      if (id) Object.assign(n, { t, g, b, c, ex: 0, d: Date.now() }, extra); else notes.push({ id: "n" + Date.now(), s: n.s, g, t, b, c, d: Date.now(), ...extra });
+      save(); render();
+      if (c && bookCtx) { openChapter[g] = c; showBook(g); } else closeSheet();
     });
   }
   // Tap a photo to see it full size; tap again to close.
@@ -1135,23 +1185,130 @@ nav.dock { position: relative; z-index: 3; display: grid; grid-template-columns:
     v.onclick = () => v.remove(); document.body.appendChild(v);
   });
   function openBook(g) {
+    if (CH_BOOKS.includes(g)) { openSheet(bookHtml(g)); bookCtx = g; bookView = true; return; }
+    bookCtx = null;
     const list = bySec("bookcase").filter(n => n.g === g);
     openSheet(`<span class="chip">Notebook</span><h2>${esc(g)}</h2><div class="list" style="margin-top:12px">${list.map(row).join("")}</div>
       <div class="bar"><span></span><div class="btns"><button class="btn ghost" data-close>Close</button><button class="btn" data-addin="${esc(g)}">+ Note in this book</button></div></div>`);
   }
 
+  // ---------- Chapters (Book of Shadows and Grimoire) ----------
+  // "hearthbook.chapters.v1" = { "Book of Shadows": [{ id, name }, …], "Grimoire": […] }, in tab order. Like every
+  // "hearthbook." key it syncs through Supabase and goes into backups. Each entry keeps its chapter id in note.c.
+  // A book with nothing saved yet shows one "General" chapter, and an entry without a (known) chapter shows in the
+  // first chapter, so older entries need no change. Nothing is written until you change the chapters yourself.
+  function pinChapters(g) {
+    // Before chapters change, write the chapter onto entries that are only showing in the first one by default,
+    // so they stay put when the tabs are reordered or renamed.
+    if (!Array.isArray(chapterStore[g]) || !chapterStore[g].length) chapterStore[g] = chaptersOf(g).map(c => ({ ...c }));
+    let changed = false;
+    notes.forEach(n => { if (chaptered(n) && n.g === g) { const id = chapterOf(n).id; if (n.c !== id) { n.c = id; changed = true; } } });
+    if (changed) save();
+  }
+  function bookHtml(g) {
+    const cs = chaptersOf(g), all = bySec("bookcase").filter(n => n.g === g);
+    const cur = cs.find(c => c.id === openChapter[g]) || cs[0]; openChapter[g] = cur.id;
+    const inCh = c => all.filter(n => chapterOf(n).id === c.id);
+    const list = inCh(cur);
+    const pageRow = n => `<button class="row" data-open="${n.id}"><b>${esc(n.t)}${exTag(n)}</b><small>${esc(n.b.split("\n")[0] || " ")}</small></button>`;
+    return `<span class="chip">${g === "Grimoire" ? "Spellbook" : "Your own book"}</span><h2>${esc(g)}</h2>
+      <div class="ch-tabs" role="tablist" aria-label="Chapters">${cs.map(c => `<button class="ch-tab" role="tab" aria-selected="${c.id === cur.id}" data-chtab="${esc(c.id)}"><span>${esc(c.name)}</span><small>${inCh(c).length}</small></button>`).join("")}<button class="ch-tab add" data-chmanage aria-label="Add, rename or reorder chapters">+ Chapter</button></div>
+      <div class="ch-page" role="tabpanel" aria-label="${esc(cur.name)}">
+        <h3>${esc(cur.name)}</h3>
+        ${list.length ? `<div class="list">${list.map(pageRow).join("")}</div>` : `<p class="muted" style="margin:0">Nothing in this chapter yet. Add an entry here, or move one in from its Edit page.</p>`}
+      </div>
+      <div class="bar"><button class="ch-link" data-chmanage>Arrange chapters</button><div class="btns"><button class="btn ghost" data-close>Close</button><button class="btn" data-addin="${esc(g)}" data-addch="${esc(cur.id)}">+ Entry</button></div></div>`;
+  }
+  function showBook(g, focusTab) {
+    bookCtx = g; bookView = true;
+    if (!sheet.classList.contains("open")) { openSheet(bookHtml(g)); return; }
+    sb.innerHTML = bookHtml(g);
+    const tab = sb.querySelector('.ch-tab[aria-selected="true"]');
+    tab?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (focusTab) tab?.focus({ preventScroll: true });
+  }
+  function manageChapters(g, msg) {
+    bookCtx = g; bookView = true;
+    const cs = chaptersOf(g), all = bySec("bookcase").filter(n => n.g === g);
+    const count = c => all.filter(n => chapterOf(n).id === c.id).length;
+    sb.innerHTML = `<span class="chip">${esc(g)}</span><h2>Chapters</h2>
+      <p class="muted">Tabs show in this order. Rename a chapter by changing its name. Deleting a chapter keeps its entries: they move to the chapter at the top.</p>
+      <div class="ch-list">${cs.map((c, i) => `<div class="ch-row">
+        <input value="${esc(c.name)}" data-chname="${esc(c.id)}" aria-label="Name of chapter ${i + 1}" maxlength="40">
+        <button class="ch-mini" data-chup="${esc(c.id)}" aria-label="Move ${esc(c.name)} up"${i ? "" : " disabled"}>↑</button>
+        <button class="ch-mini" data-chdown="${esc(c.id)}" aria-label="Move ${esc(c.name)} down"${i < cs.length - 1 ? "" : " disabled"}>↓</button>
+        ${cs.length > 1 ? `<button class="ch-mini danger" data-chdel="${esc(c.id)}" aria-label="Delete ${esc(c.name)}">✕</button>` : `<span class="ch-mini"></span>`}
+        ${count(c) ? `<small class="muted ch-count">${count(c)} ${count(c) === 1 ? "entry" : "entries"}</small>` : ""}
+      </div>`).join("")}</div>
+      <form id="chAdd" class="ch-add"><input id="chNew" placeholder="New chapter, e.g. Herbs" maxlength="40" aria-label="New chapter name"><button class="btn" type="submit">Add</button></form>
+      <p class="muted" id="chMsg" role="status">${esc(msg || "")}</p>
+      <div class="bar"><span></span><div class="btns"><button class="btn" data-backbook>Done</button></div></div>`;
+    $("chAdd").addEventListener("submit", e => {
+      e.preventDefault();
+      const name = $("chNew").value.trim().slice(0, 40); if (!name) return;
+      pinChapters(g);
+      const id = "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      chapterStore[g].push({ id, name }); saveChapters(); openChapter[g] = id;
+      manageChapters(g, `Added “${name}”.`); $("chNew").focus();
+    });
+  }
+  function renameChapter(g, id, name) {
+    name = name.trim().slice(0, 40); if (!name) return;
+    pinChapters(g);
+    const c = chapterStore[g].find(x => x.id === id); if (!c || c.name === name) return;
+    c.name = name; saveChapters(); render();
+  }
+  function moveChapter(g, id, step) {
+    pinChapters(g);
+    const cs = chapterStore[g], i = cs.findIndex(x => x.id === id), j = i + step;
+    if (i < 0 || j < 0 || j >= cs.length) return;
+    [cs[i], cs[j]] = [cs[j], cs[i]]; saveChapters();
+    manageChapters(g); sb.querySelector(`[data-ch${step < 0 ? "up" : "down"}="${CSS.escape(id)}"]:not([disabled])`)?.focus();
+  }
+  function deleteChapter(g, id) {
+    pinChapters(g);
+    const cs = chapterStore[g]; if (cs.length < 2) return;
+    const gone = cs.find(x => x.id === id); if (!gone) return;
+    chapterStore[g] = cs.filter(x => x.id !== id);
+    const to = chapterStore[g][0];
+    let moved = 0;
+    notes.forEach(n => { if (chaptered(n) && n.g === g && n.c === id) { n.c = to.id; moved++; } });
+    if (moved) save();
+    saveChapters(); if (openChapter[g] === id) openChapter[g] = to.id; render();
+    manageChapters(g, `Deleted “${gone.name}”.${moved ? ` ${moved} ${moved === 1 ? "entry" : "entries"} moved to “${to.name}”.` : ""}`);
+  }
+  // Renames save when you leave the box (or press Enter).
+  sb.addEventListener("change", e => { const i = e.target.closest("[data-chname]"); if (i && bookCtx) renameChapter(bookCtx, i.dataset.chname, i.value); });
+  sb.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches("[data-chname]")) { e.preventDefault(); e.target.blur(); } });
+
   document.addEventListener("click", e => {
-    const t = e.target.closest("[data-open],[data-edit],[data-del],[data-close],[data-add],[data-book],[data-addin],[data-cat],[data-confirm]");
+    const t = e.target.closest("[data-open],[data-edit],[data-del],[data-close],[data-add],[data-book],[data-addin],[data-cat],[data-confirm],[data-chtab],[data-chmanage],[data-chup],[data-chdown],[data-chdel],[data-chdelok],[data-backbook]");
     if (!t) return;
     const d = t.dataset;
-    if (d.open) viewNote(d.open);
-    else if (d.edit) editNote(d.edit);
-    else if (d.confirm) { dropPhotos(notes.find(n => n.id === d.confirm)?.ph); notes = notes.filter(n => n.id !== d.confirm); save(); render(); closeSheet(); }
+    if (d.open) { viewNote(d.open); bookView = false; }
+    else if (d.edit) { editNote(d.edit); bookView = false; }
+    else if (d.confirm) {
+      const gone = notes.find(n => n.id === d.confirm);
+      dropPhotos(gone?.ph); notes = notes.filter(n => n.id !== d.confirm); save(); render();
+      if (bookCtx && gone && gone.g === bookCtx) showBook(bookCtx); else closeSheet();
+    }
     else if (d.del) { t.outerHTML = `<span class="danger">Delete this? <button class="danger" style="text-decoration:underline" data-confirm="${d.del}">Yes, delete</button></span>`; }
-    else if (d.close !== undefined) closeSheet();
+    else if (d.chdelok) deleteChapter(bookCtx, d.chdelok);
+    else if (d.chdel) {
+      const c = chaptersOf(bookCtx).find(x => x.id === d.chdel), n = bySec("bookcase").filter(x => x.g === bookCtx && chapterOf(x).id === d.chdel).length;
+      if (!n) deleteChapter(bookCtx, d.chdel);
+      else $("chMsg").innerHTML = `<span class="danger">Delete “${esc(c.name)}”? Its ${n} ${n === 1 ? "entry moves" : "entries move"} to the top chapter. <button class="danger" style="text-decoration:underline" data-chdelok="${esc(d.chdel)}">Yes, delete</button></span>`;
+    }
+    else if (d.chup) moveChapter(bookCtx, d.chup, -1);
+    else if (d.chdown) moveChapter(bookCtx, d.chdown, 1);
+    else if (d.chtab) { openChapter[bookCtx] = d.chtab; showBook(bookCtx, true); }
+    else if (d.chmanage !== undefined) manageChapters(bookCtx);
+    else if (d.backbook !== undefined) showBook(bookCtx);
+    // Close inside a book's entry or editor goes back to the chapter; Close on the book itself closes it.
+    else if (d.close !== undefined) { if (bookCtx && !bookView) showBook(bookCtx); else closeSheet(); }
     else if (d.add) editNote(null, d.add);
     else if (d.book) openBook(d.book);
-    else if (d.addin) editNote(null, "bookcase", d.addin);
+    else if (d.addin) { editNote(null, "bookcase", d.addin, d.addch); bookView = false; }
     else if (d.cat) { hearthFilter = d.cat; render(); }
   });
 
