@@ -498,7 +498,7 @@ header.top { position: relative; z-index: 2; display: flex; align-items: center;
 @keyframes candle { 0%,100% { opacity: .7; scale: 1; } 23% { opacity: 1; scale: 1.08; } 41% { opacity: .65; scale: .96; } 63% { opacity: .95; scale: 1.05; } 82% { opacity: .78; } }
 #r-altar .scene .candle { animation-duration: 1.5s; }
 /* Altar candle flames: a teardrop on each wick that sways and flickers. */
-.scene .flame { position: absolute; width: 1.7%; aspect-ratio: 1 / 2.6; translate: -50% -100%; transform-origin: 50% 100%; border-radius: 50% 50% 45% 45% / 62% 62% 38% 38%; mix-blend-mode: screen;
+#r-altar .scene .flame { position: absolute; width: 1.7%; aspect-ratio: 1 / 2.6; translate: -50% -100%; transform-origin: 50% 100%; border-radius: 50% 50% 45% 45% / 62% 62% 38% 38%; mix-blend-mode: screen;
   background: radial-gradient(ellipse 50% 60% at 50% 72%, #fffbe8 0%, #ffe39a 35%, #ffa040 65%, rgba(255,110,30,0) 100%);
   filter: blur(.4px) drop-shadow(0 0 4px rgba(255,170,80,.9)); animation: flameSway 1.9s ease-in-out infinite, flameFlick .55s ease-in-out infinite alternate; }
 /* Cauldron: a warm glow in the pot, bubbles rising and popping, and steam. */
